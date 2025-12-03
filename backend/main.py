@@ -2,13 +2,13 @@ from typing import List, Dict
 
 from fastapi import FastAPI
 
-# Import from our own modules
-from data.fetch_historical import fetch_sample_data
-from indicators.rsi import calculate_rsi
-from indicators.macd import calculate_macd
-from indicators.bollinger import calculate_bollinger
-from indicators.adx import calculate_adx
-from models.lstm_predict import predict_next_price
+# Import from our own modules (relative imports inside the backend package)
+from .data.fetch_historical import fetch_sample_data
+from .indicators.rsi import calculate_rsi
+from .indicators.macd import calculate_macd
+from .indicators.bollinger import calculate_bollinger
+from .indicators.adx import calculate_adx
+from .models.lstm_predict import predict_next_price
 
 app = FastAPI(
     title="CryptoVision Backend",
