@@ -1,36 +1,55 @@
-"""
-fetch_historical.py
---------------------
-
-This module will be responsible for downloading and preparing
-historical price data for CryptoVision.
-
-For now, it contains a simple placeholder function that we will
-upgrade step by step.
-"""
-
+import requests
 from typing import List, Dict
 
+COINGECKO_URL = "https://api.coingecko.com/api/v3"
 
-def fetch_sample_data() -> List[Dict]:
+def fetch_real_historical_data(coin_id: str = "bitcoin", days: int = 30) -> List[Dict]:
     """
-    Temporary test function.
-    Later this will call a real crypto API (for example CoinGecko)
-    to download historical prices.
+    Fetch historical market data from CoinGecko.
+    Returns closing prices for the last X days.
+    
+    Example coin_id:
+    - 'bitcoin'
+    - 'ethereum'
+    - 'cardano'
+    """
+    url = f"{COINGECKO_URL}/coins/{coin_id}/market_chart"
+    params = {
+        "vs_currency": "usd",
+        "days": days,
+        "interval": "hourly"
+    }
+    
+    response = requests.get(url, params=params)
+    
+    if response.status_code != 200:
+        raise Exception(f"CoinGecko API Error: {response.status_code}")
+    
+    data = response.json()
+    
+    prices = data.get("prices", [])
+    result = []
+    
+    for timestamp, price in prices:
+        result.append({
+            "timestamp": timestamp,
+            "price": float(price)
+        })
+    
+    return result
 
-    Returns a small in-memory dataset we can use for tests.
+
+def fetch_sample_data():
     """
-    data = [
-        {"timestamp": "2025-01-01T00:00:00Z", "price": 40000.0},
-        {"timestamp": "2025-01-02T00:00:00Z", "price": 41000.0},
-        {"timestamp": "2025-01-03T00:00:00Z", "price": 39500.0},
+    Temporary fallback used before real API integration.
+    Returns 7 fake prices.
+    """
+    return [
+        {"timestamp": 1, "price": 100},
+        {"timestamp": 2, "price": 101},
+        {"timestamp": 3, "price": 102},
+        {"timestamp": 4, "price": 103},
+        {"timestamp": 5, "price": 104},
+        {"timestamp": 6, "price": 103},
+        {"timestamp": 7, "price": 105},
     ]
-    return data
-
-
-if __name__ == "__main__":
-    # Small debug print – in the future we will replace this
-    # with real data download + save to file.
-    sample = fetch_sample_data()
-    for row in sample:
-        print(row)
