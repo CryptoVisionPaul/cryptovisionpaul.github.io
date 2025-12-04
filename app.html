@@ -1390,60 +1390,61 @@
     }
 
     // EVENT LISTENERS
-    searchInput.addEventListener("input", filterCoins);
+    searchInput.addEventListener("input", filterCoins);ap
     sortSelect.addEventListener("change", handleSortChange);
     refreshBtn.addEventListener("click", fetchCoins);
 
     // INIT
     fetchCoins();
   </script><script>
-  // === CONFIG: adresa backend-ului FastAPI ===
-  // ATENȚIE: acesta TREBUIE să fie URL-ul public al backend-ului tău
-  // de ex: "https://cryptovision-backend.onrender.com"
-  const BACKEND_BASE_URL = "https://YOUR-BACKEND-URL-HERE";
+ // ------------------------------
+// BACKEND CONFIG (placeholder)
+// ------------------------------
+const BACKEND_BASE_URL = "https://YOUR-BACKEND-URL-HERE";
 
-  async function handleAiBackendTest() {
+
+// ------------------------------
+// AI BACKEND TEST (FINAL VERSION)
+// ------------------------------
+async function handleAiBackendTest() {
+
     const input = document.getElementById("ai-coin-id-input");
     const resultBox = document.getElementById("ai-backend-result");
 
     const coinId = (input.value || "bitcoin").trim();
     if (!coinId) {
-      resultBox.textContent = "Please enter a coin ID.";
-      return;
+        resultBox.textContent = "Please enter a coin ID.";
+        return;
     }
 
-    const url = `${BACKEND_BASE_URL}/demo/prediction?coin_id=${encodeURIComponent(
-      coinId
-    )}&days=90`;
-
+    const url = `${BACKEND_BASE_URL}/demo/prediction?coin_id=${encodeURIComponent(coinId)}&days=90`;
     resultBox.textContent = "Loading from backend...\n" + url;
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+        const response = await fetch(url);
+        if (!response.ok) {
+            resultBox.textContent = "Backend error: " + response.status;
+            return;
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      const simplified = {
-        coin_id: data.coin_id,
-        days: data.days,
-        data_source: data.data_source,
-        last_price: data.last_price,
-        predicted_price: data.predicted_price,
-        indicators: data.indicators,
-        data_points: data.data_points,
-      };
+        // === UPDATE AI SUMMARY CARD ===
+        document.getElementById("ai-summary-coin").textContent = data.coin_id;
+        document.getElementById("ai-summary-last").textContent = data.last_price.toFixed(2);
+        document.getElementById("ai-summary-predicted").textContent = data.predicted_price.toFixed(2);
+        document.getElementById("ai-summary-rsi").textContent = data.indicators.rsi.toFixed(2);
 
-      resultBox.textContent = JSON.stringify(simplified, null, 2);
-    } catch (err) {
-      resultBox.textContent =
-        "Error while calling backend:\n" +
-        String(err) +
-        "\n\nMake sure BACKEND_BASE_URL points to a running FastAPI server.";
+        // === Show JSON in test panel ===
+        resultBox.textContent =
+            "=== AI Backend Response ===\n\n" +
+            JSON.stringify(data, null, 2);
+
+    } catch (error) {
+        resultBox.textContent = "Fetch error: " + error;
     }
-  }
+}
+
 </script>
 
 </body><!-- ====== AI Backend Test Panel ====== -->
