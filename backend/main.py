@@ -1,6 +1,7 @@
 from typing import List, Dict
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Import from our own modules (relative imports)
 from .data.fetch_historical import fetch_real_historical_data, fetch_sample_data
@@ -8,12 +9,21 @@ from .indicators.rsi import calculate_rsi
 from .indicators.macd import calculate_macd
 from .indicators.bollinger import calculate_bollinger
 from .indicators.adx import calculate_adx
-from .models.lstm_predict import predict_next_price
+from .models.lstm_predict import predict_next_price, predict_next_price_lstm
 
 app = FastAPI(
     title="CryptoVision Backend",
     version="0.2.0",
     description="Backend API for data, indicators and AI-based predictions for CryptoVision."
+)
+
+# --- CORS: allows requests from your frontend (GitHub Pages or other domains) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # mai târziu putem restricționa la domeniul tău
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -34,7 +44,7 @@ def demo_prediction(coin_id: str = "bitcoin", days: int = 30):
     Demo endpoint that:
     - loads REAL historical data from CoinGecko (with fallback to sample data)
     - calculates REAL indicators (RSI, MACD, Bollinger, ADX)
-    - calls the (for now simple) LSTM predictor
+    - calls the (currently simple) predictor
 
     :param coin_id: CoinGecko coin id (e.g. 'bitcoin', 'ethereum')
     :param days: how many days of history to load
@@ -64,7 +74,7 @@ def demo_prediction(coin_id: str = "bitcoin", days: int = 30):
     # For now we approximate using the same price series for all three.
     adx_value = calculate_adx(prices, prices, prices)
 
-    # 3. "Predict" next price using our (currently simple) LSTM predictor
+    # 3. "Predict" next price using simple predictor (fallback)
     predicted_price = predict_next_price(prices)
 
     return {
@@ -88,4 +98,30 @@ def demo_prediction(coin_id: str = "bitcoin", days: int = 30):
             "adx": adx_value,
         },
         "data_points": len(prices),
+    }
+
+
+@app.get("/ai/prediction")
+def ai_prediction(coin_id: str = "bitcoin", days: int = 180):
+    """
+    Endpoint pregătit pentru LSTM real.
+    Va folosi predict_next_price_lstm atunci când modelul este antrenat
+    și fisierul .h5 este disponibil pe server.
+    """
+    try:
+        predicted_price = predict_next_price_lstm(coin_id=coin_id, days=days)
+        source = "lstm_model"
+    except Exception as e:
+        # Dacă modelul nu poate fi folosit, nu blocăm totul
+        return {
+            "coin_id": coin_id,
+            "days": days,
+            "error": f"LSTM prediction not available: {str(e)}",
+        }
+
+    return {
+        "coin_id": coin_id,
+        "days": days,
+        "predicted_price": predicted_price,
+        "source": source,
     }
