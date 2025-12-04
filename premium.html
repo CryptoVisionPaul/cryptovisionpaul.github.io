@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CryptoVision Premium</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #020617;
+    }
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    a {
+      color: #22c55e;
+      text-decoration: none;
+    }
+    main {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 16px 32px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #16a34a33;
+      color: #bbf7d0;
+      margin-bottom: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .card {
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 16px;
+      background: #020617;
+    }
+    .price {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 4px 0;
+    }
+    .muted {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    ul {
+      padding-left: 18px;
+      font-size: 14px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      background: #22c55e;
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">CryptoVision</div>
+    <nav>
+      <a href="index.html">Home</a> ·
+      <a href="app.html">Launch App</a> ·
+      <a href="premium.html">Premium</a>
+    </nav>
+  </header>
+
+  <main>
+    <span class="tag">Coming soon</span>
+    <h1>CryptoVision Premium</h1>
+    <p class="muted">
+      CryptoVision will offer two tiers: a free version with ads and a premium subscription
+      for advanced traders who want more AI power, cleaner UI and faster insights.
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Free version</h2>
+        <div class="price">$0 / month</div>
+        <p class="muted">Supported by Google AdSense.</p>
+        <ul>
+          <li>Access to CryptoVision web app</li>
+          <li>Basic AI summary &amp; indicators</li>
+          <li>Delayed predictions &amp; limited features</li>
+          <li>Ads displayed in non-intrusive areas</li>
+        </ul>
+        <button onclick="location.href='app.html'">Use Free Version</button>
+      </div>
+
+      <div class="card">
+        <h2>Premium version</h2>
+        <div class="price">$X.XX / month</div>
+        <p class="muted">Ad-free &amp; priority AI features.</p>
+        <ul>
+          <li>Ad-free trading assistant</li>
+          <li>Faster AI predictions (LSTM-based)</li>
+          <li>More timeframes (30m, 1h, 4h, 1d)</li>
+          <li>Advanced alerts &amp; signal engine</li>
+        </ul>
+        <button disabled>Coming soon</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
