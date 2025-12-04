@@ -1396,6 +1396,84 @@
 
     // INIT
     fetchCoins();
-  </script>
-</body>
+  </script><script>
+  // === CONFIG: adresa backend-ului FastAPI ===
+  // ATENȚIE: acesta TREBUIE să fie URL-ul public al backend-ului tău
+  // de ex: "https://cryptovision-backend.onrender.com"
+  const BACKEND_BASE_URL = "https://YOUR-BACKEND-URL-HERE";
+
+  async function handleAiBackendTest() {
+    const input = document.getElementById("ai-coin-id-input");
+    const resultBox = document.getElementById("ai-backend-result");
+
+    const coinId = (input.value || "bitcoin").trim();
+    if (!coinId) {
+      resultBox.textContent = "Please enter a coin ID.";
+      return;
+    }
+
+    const url = `${BACKEND_BASE_URL}/demo/prediction?coin_id=${encodeURIComponent(
+      coinId
+    )}&days=90`;
+
+    resultBox.textContent = "Loading from backend...\n" + url;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const simplified = {
+        coin_id: data.coin_id,
+        days: data.days,
+        data_source: data.data_source,
+        last_price: data.last_price,
+        predicted_price: data.predicted_price,
+        indicators: data.indicators,
+        data_points: data.data_points,
+      };
+
+      resultBox.textContent = JSON.stringify(simplified, null, 2);
+    } catch (err) {
+      resultBox.textContent =
+        "Error while calling backend:\n" +
+        String(err) +
+        "\n\nMake sure BACKEND_BASE_URL points to a running FastAPI server.";
+    }
+  }
+</script>
+
+</body><!-- ====== AI Backend Test Panel ====== -->
+<section id="ai-backend-panel" style="margin-top: 24px; padding: 16px; border-radius: 8px; background: #0d1220; border: 1px solid #1f2937;">
+  <h2 style="margin-bottom: 8px;">AI Backend Test</h2>
+  <p style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">
+    Enter a CoinGecko coin ID (e.g. <code>bitcoin</code>, <code>ethereum</code>) and press the button to call the backend demo endpoint.
+  </p>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom: 12px; flex-wrap:wrap;">
+    <label for="ai-coin-id-input" style="font-size:14px;">Coin ID:</label>
+    <input
+      id="ai-coin-id-input"
+      type="text"
+      value="bitcoin"
+      style="padding:6px 10px; border-radius:6px; border:1px solid #374151; background:#020617; color:#f9fafb; min-width:140px;"
+    />
+    <button
+      type="button"
+      onclick="handleAiBackendTest()"
+      style="padding:6px 14px; border-radius:999px; border:none; background:#22c55e; color:#020617; font-weight:600; cursor:pointer;"
+    >
+      Test AI Backend
+    </button>
+  </div>
+
+  <pre
+    id="ai-backend-result"
+    style="max-height:260px; overflow:auto; background:#020617; border-radius:6px; padding:10px; font-size:12px; border:1px solid #1f2937; color:#e5e7eb;"
+  >No request sent yet.</pre>
+</section>
+<!-- ==== /AI Backend Test Panel ==== -->
+
 </html>
