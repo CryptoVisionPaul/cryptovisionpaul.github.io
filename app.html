@@ -1396,55 +1396,52 @@
 
     // INIT
     fetchCoins();
-  </script><script>
- // ------------------------------
-// BACKEND CONFIG (placeholder)
-// ------------------------------
-const BACKEND_BASE_URL = "https://YOUR-BACKEND-URL-HERE";
+  <script>
+  // ------------------------------
+  // BACKEND CONFIG (placeholder)
+  // ------------------------------
+  const BACKEND_BASE_URL = "https://YOUR-BACKEND-URL-HERE";
 
-
-// ------------------------------
-// AI BACKEND TEST (FINAL VERSION)
-// ------------------------------
-async function handleAiBackendTest() {
-
+  // ------------------------------
+  // AI BACKEND TEST (SAFE VERSION)
+  // ------------------------------
+  async function handleAiBackendTest() {
     const input = document.getElementById("ai-coin-id-input");
     const resultBox = document.getElementById("ai-backend-result");
 
-    const coinId = (input.value || "bitcoin").trim();
+    const coinId = (input?.value || "bitcoin").trim();
     if (!coinId) {
-        resultBox.textContent = "Please enter a coin ID.";
-        return;
+      resultBox.textContent = "Please enter a coin ID.";
+      return;
     }
 
-    const url = `${BACKEND_BASE_URL}/demo/prediction?coin_id=${encodeURIComponent(coinId)}&days=90`;
+    const url =
+      `${BACKEND_BASE_URL}/demo/prediction?coin_id=${encodeURIComponent(coinId)}&days=90`;
+
     resultBox.textContent = "Loading from backend...\n" + url;
 
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            resultBox.textContent = "Backend error: " + response.status;
-            return;
-        }
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("HTTP " + response.status);
 
-        const data = await response.json();
+      const data = await response.json();
 
-        // === UPDATE AI SUMMARY CARD ===
-        document.getElementById("ai-summary-coin").textContent = data.coin_id;
-        document.getElementById("ai-summary-last").textContent = data.last_price.toFixed(2);
-        document.getElementById("ai-summary-predicted").textContent = data.predicted_price.toFixed(2);
-        document.getElementById("ai-summary-rsi").textContent = data.indicators.rsi.toFixed(2);
+      // Update AI Summary safely
+      document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
+      document.getElementById("ai-summary-last").textContent =
+        (typeof data?.last_price === "number") ? data.last_price.toFixed(2) : "-";
+      document.getElementById("ai-summary-predicted").textContent =
+        (typeof data?.predicted_price === "number") ? data.predicted_price.toFixed(2) : "-";
+      document.getElementById("ai-summary-rsi").textContent =
+        (typeof data?.indicators?.rsi === "number") ? data.indicators.rsi.toFixed(2) : "-";
 
-        // === Show JSON in test panel ===
-        resultBox.textContent =
-            "=== AI Backend Response ===\n\n" +
-            JSON.stringify(data, null, 2);
-
-    } catch (error) {
-        resultBox.textContent = "Fetch error: " + error;
+      resultBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      resultBox.textContent =
+        "Error while calling backend:\n" + String(err) +
+        "\n\nTip: BACKEND_BASE_URL must be a REAL public FastAPI URL (not the placeholder).";
     }
-}
-
+  }
 </script>
 
 </body><!-- ====== AI Backend Test Panel ====== -->
