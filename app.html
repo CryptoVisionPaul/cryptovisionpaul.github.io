@@ -1499,5 +1499,15 @@
 <!-- ==== /AI Summary Card ==== -->
 
 <!-- ==== /AI Backend Test Panel ==== -->
+<script>
+  // PORNEȘTE AUTOMAT ÎNCĂRCAREA MONEDelor
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof fetchCoins === "function") {
+      fetchCoins();
+    } else {
+      console.log("fetchCoins() nu este definită");
+    }
+  });
+</script>
 
 </html>
