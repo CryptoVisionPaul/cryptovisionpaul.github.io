@@ -560,6 +560,17 @@
     // Put your public backend URL here (Render/Railway/Fly/etc).
     // Example: "https://cryptovision-backend.onrender.com"
     const BACKEND_BASE_URL = "https://cryptovision-ldo7.onrender.com";
+// --- BACKEND CONNECTIVITY TEST ---
+async function testBackend() {
+  try {
+    const res = await fetch(`${BACKEND_BASE_URL}/health`);
+    const data = await res.json();
+    console.log("✅ Backend health:", data);
+  } catch (err) {
+    console.error("❌ Backend NOT reachable", err);
+  }
+}
+testBackend();
 
 
 
