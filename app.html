@@ -645,150 +645,65 @@ testBackend();
     // ------------------------------
     // COINGECKO: FETCH TOP COINS
     // ------------------------------
-    async function fetchCoins() {
-      const url = `${BACKEND_BASE_URL}/coins/simple`;
+   async function fetchCoins() {
+  // Poate veni fie din CoinGecko direct, fie din backend (object cu .coins)
+  const url = `${BACKEND_BASE_URL}/coins/simple`;
 
+  try {
+    dailyInsightEl.textContent = "Loading market analysis...";
+    const res = await fetch(url, { cache: "no-store" });
 
-      try {
-        dailyInsightEl.textContent = "Loading market analysis...";
-        const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load data. HTTP " + res.status);
 
-        if (!res.ok) throw new Error("Failed to load CoinGecko data (rate-limit possible). HTTP " + res.status);
+    const data = await res.json();
 
-        const data = await res.json();
-        coinsRaw = Array.isArray(data) ? data : [];
-        filteredCoins = [...coinsRaw];
+    // Acceptăm ambele formate:
+    // 1) array direct: [ ... ]
+    // 2) object: { coins: [ ... ] }
+    const rawArray = Array.isArray(data) ? data : (Array.isArray(data.coins) ? data.coins : []);
 
-        applySort();
-        renderTable();
-        makeDailyInsight();
-        updateTimestamp();
-      } catch (err) {
-        console.error(err);
-        dailyInsightEl.textContent =
-          "Error loading data. Please refresh in 1-2 minutes (CoinGecko rate-limit can happen).";
-      }
-    }
-
-    function applySort() {
-      const key = currentSort;
-      filteredCoins.sort((a, b) => {
-        if (key === "rank") return (a.market_cap_rank ?? 9999) - (b.market_cap_rank ?? 9999);
-        if (key === "change24") return Math.abs(b.price_change_percentage_24h || 0) - Math.abs(a.price_change_percentage_24h || 0);
-        if (key === "change1h") return Math.abs(b.price_change_percentage_1h_in_currency || 0) - Math.abs(a.price_change_percentage_1h_in_currency || 0);
-        if (key === "change7d") return Math.abs(b.price_change_percentage_7d_in_currency || 0) - Math.abs(a.price_change_percentage_7d_in_currency || 0);
-        return 0;
-      });
-    }
-
-    function renderTable() {
-      coinsBody.innerHTML = "";
-
-      if (!filteredCoins.length) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 7;
-        td.style.textAlign = "left";
-        td.style.color = "#9ca3af";
-        td.textContent = "No data yet. Try Refresh.";
-        tr.appendChild(td);
-        coinsBody.appendChild(tr);
-        return;
+    // Normalizăm ca UI-ul să nu se strice dacă backend-ul trimite doar {id, price, trend}
+    coinsRaw = rawArray.map((c, idx) => {
+      // Dacă are deja format CoinGecko markets, îl lăsăm
+      if (c && typeof c === "object" && ("current_price" in c || "market_cap_rank" in c)) {
+        return c;
       }
 
-      filteredCoins.forEach((coin) => {
-        const tr = document.createElement("tr");
-        tr.dataset.id = coin.id;
+      // Format simplu din backend: { id, price, trend }
+      const id = c?.id ?? `coin-${idx}`;
+      const price = (typeof c?.price === "number") ? c.price : null;
 
-        const rankTd = document.createElement("td");
-        rankTd.innerHTML = `<span class="rank">${coin.market_cap_rank ?? "?"}</span>`;
-        tr.appendChild(rankTd);
+      // fallback pt name/symbol
+      const name = (id || "Unknown").replace(/(^|-)\w/g, m => m.toUpperCase()).replace(/-/g, " ");
+      const symbol = (id || "UNK").split("-")[0].slice(0, 6).toUpperCase();
 
-        const nameTd = document.createElement("td");
-        nameTd.innerHTML = `
-          <div class="coin-name">
-            <span>${coin.name ?? "Unknown"}</span>
-            <span class="coin-symbol">${(coin.symbol ?? "?").toUpperCase()}</span>
-          </div>
-        `;
-        tr.appendChild(nameTd);
+      return {
+        id,
+        name,
+        symbol,
+        current_price: price,
+        market_cap_rank: null,
+        market_cap: 0,
+        price_change_percentage_1h_in_currency: null,
+        price_change_percentage_24h: null,
+        price_change_percentage_7d_in_currency: null,
+        __trend: c?.trend ?? null, // dacă vrei să-l folosești mai târziu
+      };
+    });
 
-        const priceTd = document.createElement("td");
-        priceTd.textContent = formatPrice(coin.current_price);
-        tr.appendChild(priceTd);
+    filteredCoins = [...coinsRaw];
 
-        const chg1hTd = document.createElement("td");
-        const chg1h = coin.price_change_percentage_1h_in_currency;
-        chg1hTd.textContent = formatPercent(chg1h);
-        chg1hTd.className = chg1h > 0 ? "chg-pos" : chg1h < 0 ? "chg-neg" : "";
-        tr.appendChild(chg1hTd);
+    applySort();
+    renderTable();
+    makeDailyInsight();
+    updateTimestamp();
+  } catch (err) {
+    console.error(err);
+    dailyInsightEl.textContent =
+      "Error loading data. Please refresh and check backend endpoint.";
+  }
+}
 
-        const chg24Td = document.createElement("td");
-        const chg24 = coin.price_change_percentage_24h;
-        chg24Td.textContent = formatPercent(chg24);
-        chg24Td.className = chg24 > 0 ? "chg-pos" : chg24 < 0 ? "chg-neg" : "";
-        tr.appendChild(chg24Td);
-
-        const chg7dTd = document.createElement("td");
-        const chg7d = coin.price_change_percentage_7d_in_currency;
-        chg7dTd.textContent = formatPercent(chg7d);
-        chg7dTd.className = chg7d > 0 ? "chg-pos" : chg7d < 0 ? "chg-neg" : "";
-        tr.appendChild(chg7dTd);
-
-        const mcTd = document.createElement("td");
-        mcTd.textContent = "$" + formatNumberAbbr(coin.market_cap ?? 0);
-        tr.appendChild(mcTd);
-
-        tr.addEventListener("click", () => handleCoinClick(coin.id));
-        coinsBody.appendChild(tr);
-      });
-    }
-
-    function makeDailyInsight() {
-      if (!coinsRaw.length) {
-        dailyInsightEl.textContent = "Not enough data yet. Try refresh.";
-        return;
-      }
-
-      let sum24 = 0, count24 = 0;
-      let topGainer = null, topLoser = null;
-      let highVolMoves = 0;
-
-      coinsRaw.forEach((c) => {
-        const chg = c.price_change_percentage_24h;
-        if (chg != null && !Number.isNaN(chg)) {
-          sum24 += chg;
-          count24++;
-          if (!topGainer || chg > (topGainer.price_change_percentage_24h ?? -9999)) topGainer = c;
-          if (!topLoser || chg < (topLoser.price_change_percentage_24h ?? 9999)) topLoser = c;
-          if (Math.abs(chg) >= 5) highVolMoves++;
-        }
-      });
-
-      const avg24 = count24 ? (sum24 / count24) : 0;
-      let mood = "balanced / sideways";
-      if (avg24 > 1.5) mood = "bullish";
-      else if (avg24 < -1.5) mood = "bearish";
-
-      const volatility =
-        highVolMoves >= 10 ? "high (many moves > ±5% in 24h)"
-        : highVolMoves >= 4 ? "medium (some strong spikes)"
-        : "low (mostly moderate moves)";
-
-      const text = `
-        <p>
-          Based on <strong>${count24}</strong> top coins by market cap, today’s overall market mood looks
-          <strong>${mood}</strong>, with an average 24h change of <strong>${avg24.toFixed(2)}%</strong>.
-        </p>
-        <ul class="ai-list">
-          <li><strong>Top gainer:</strong> <strong>${topGainer?.name ?? "N/A"}</strong> (${formatPercent(topGainer?.price_change_percentage_24h)} / 24h)</li>
-          <li><strong>Top loser:</strong> <strong>${topLoser?.name ?? "N/A"}</strong> (${formatPercent(topLoser?.price_change_percentage_24h)} / 24h)</li>
-          <li><strong>Volatility:</strong> <strong>${volatility}</strong></li>
-          <li>Reminder: this is informational only, not financial advice.</li>
-        </ul>
-      `;
-      dailyInsightEl.innerHTML = text;
-    }
 
     function filterCoins() {
       const q = (searchInput.value || "").toLowerCase().trim();
