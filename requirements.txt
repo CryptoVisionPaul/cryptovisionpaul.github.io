@@ -1,9 +1,3 @@
 fastapi
 uvicorn
-numpy
-pandas
-scikit-learn
-tensorflow
-python-dotenv
 requests
-ta
