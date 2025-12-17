@@ -1197,7 +1197,8 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
 
 
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, retryDelayMs: 900, mode: "cors" });
+
 
         document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
         document.getElementById("ai-summary-last").textContent =
