@@ -62,56 +62,45 @@ th{text-align:left;color:#9ca3af}
 </div>
 
 <script>
-/* =========================
-   CONFIG
-========================= */
-const BACKEND_BASE_URL = "https://cryptovision-ldo7.onrender.com";
+// ------------------------------
+// BACKEND: FETCH TOP COINS (REAL DATA)
+// ------------------------------
+async function fetchCoins() {
+  const url =
+    `${BACKEND_BASE_URL}/coins/markets` +
+    `?vs_currency=usd` +
+    `&order=market_cap_desc` +
+    `&per_page=50` +
+    `&page=1` +
+    `&sparkline=false` +
+    `&price_change_percentage=1h,24h,7d`;
 
-/* =========================
-   FETCH COINS (BACKEND)
-========================= */
-async function fetchCoins(){
-  const url = `${BACKEND_BASE_URL}/coins/simple`;
-  const body = document.getElementById("coinsBody");
-  body.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+  try {
+    dailyInsightEl.textContent = "Loading market analysis...";
+    const res = await fetch(url, { cache: "no-store" });
 
-  try{
-    const res = await fetch(url);
-    if(!res.ok) throw new Error(res.status);
-    const json = await res.json();
+    if (!res.ok) {
+      throw new Error("Backend error HTTP " + res.status);
+    }
 
-    /* 🔴 AICI era problema TA */
-    const coins = json.coins;
+    const data = await res.json();
 
-    body.innerHTML = "";
+    // IMPORTANT: backend returns ARRAY
+    coinsRaw = Array.isArray(data) ? data : [];
+    filteredCoins = [...coinsRaw];
 
-    coins.forEach(c=>{
-      const tr = document.createElement("tr");
+    applySort();
+    renderTable();
+    makeDailyInsight();
+    updateTimestamp();
 
-      const tdName = document.createElement("td");
-      tdName.textContent = c.id;
-
-      const tdPrice = document.createElement("td");
-      tdPrice.textContent = "$" + c.price.toLocaleString();
-
-      const tdTrend = document.createElement("td");
-      tdTrend.textContent = c.trend;
-      tdTrend.className =
-        c.trend === "bullish" ? "up" :
-        c.trend === "bearish" ? "down" : "";
-
-      tr.appendChild(tdName);
-      tr.appendChild(tdPrice);
-      tr.appendChild(tdTrend);
-
-      body.appendChild(tr);
-    });
-
-  }catch(err){
-    body.innerHTML = `<tr><td colspan="3">Error loading backend</td></tr>`;
+  } catch (err) {
     console.error(err);
+    dailyInsightEl.textContent =
+      "❌ Failed to load market data from backend.";
   }
 }
+
 
 /* =========================
    EVENTS
