@@ -1,112 +1,201 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>CryptoVision – AI Crypto Insights</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body{
-  margin:0;
-  font-family:system-ui;
-  background:#020617;
-  color:#e5e7eb;
-}
-.container{
-  max-width:900px;
-  margin:40px auto;
-  padding:20px;
-}
-h1{margin-bottom:10px}
-button{
-  padding:8px 14px;
-  border-radius:6px;
-  border:none;
-  background:#22c55e;
-  color:#020617;
-  font-weight:700;
-  cursor:pointer;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:20px;
-}
-th,td{
-  padding:8px;
-  border-bottom:1px solid #1f2937;
-}
-th{text-align:left;color:#9ca3af}
-.up{color:#22c55e}
-.down{color:#f87171}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CryptoVision – Markets (Backend)</title>
+  <style>
+    :root{
+      --bg:#050816; --card:#0b1225; --border:#1f2a44;
+      --text:#e5e7eb; --muted:#9ca3af;
+      --pos:#22c55e; --neg:#f97373; --btn:#22c55e;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top,#111827,#020617);
+      color:var(--text);
+      min-height:100vh;
+      display:flex; justify-content:center;
+      padding:28px 14px;
+    }
+    .wrap{width:100%; max-width:1100px;}
+    .top{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:14px; flex-wrap:wrap;
+    }
+    h1{margin:0; font-size:26px; letter-spacing:.02em}
+    .sub{color:var(--muted); font-size:12px; margin-top:4px}
+    .btn{
+      background:var(--btn); color:#02110a; border:0; cursor:pointer;
+      font-weight:800; padding:9px 14px; border-radius:10px;
+    }
+    .btn:hover{filter:brightness(1.05)}
+    .card{
+      background:rgba(11,18,37,.86);
+      border:1px solid rgba(148,163,184,.25);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 18px 50px rgba(0,0,0,.45);
+    }
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px}
+    .pill{
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(148,163,184,.25);
+      color:var(--muted); font-size:12px;
+      background:rgba(2,6,23,.55);
+    }
+    .status{font-size:12px; color:var(--muted)}
+    .tableWrap{
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid rgba(31,41,55,.9);
+      background:rgba(2,6,23,.45);
+    }
+    table{width:100%; border-collapse:collapse; font-size:13px; min-width:980px}
+    thead{position:sticky; top:0; background:rgba(2,6,23,.9); z-index:2}
+    th,td{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(31,41,55,.85);
+      white-space:nowrap;
+      text-align:right;
+    }
+    th{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em}
+    th:nth-child(2), td:nth-child(2){text-align:left}
+    td:nth-child(1){color:var(--muted)}
+    tr:hover{background:rgba(37,99,235,.12)}
+    .pos{color:var(--pos); font-weight:700}
+    .neg{color:var(--neg); font-weight:700}
+    .muted{color:var(--muted)}
+    code{color:#bfdbfe}
+  </style>
 </head>
-
 <body>
-<div class="container">
-  <h1>CryptoVision</h1>
-  <button id="refreshBtn">Refresh</button>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>CryptoVision</h1>
+        <div class="sub">Top 50 markets from your Render backend (CoinGecko proxy).</div>
+      </div>
+      <button class="btn" id="btnRefresh">Refresh</button>
+    </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Coin</th>
-        <th>Price (USD)</th>
-        <th>Trend</th>
-      </tr>
-    </thead>
-    <tbody id="coinsBody"></tbody>
-  </table>
-</div>
+    <div class="card">
+      <div class="row">
+        <span class="pill">Backend: <code id="backendUrl">—</code></span>
+        <span class="pill">Endpoint: <code>/coins/markets</code></span>
+        <span class="pill">vs_currency: <code>usd</code></span>
+        <span class="pill">per_page: <code>50</code></span>
+      </div>
+      <div class="status" id="status">Loading…</div>
+
+      <div class="tableWrap" style="margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coin</th>
+              <th>Price</th>
+              <th>1h</th>
+              <th>24h</th>
+              <th>7d</th>
+              <th>Market Cap</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 <script>
-// ------------------------------
-// BACKEND: FETCH TOP COINS (REAL DATA)
-// ------------------------------
-async function fetchCoins() {
-  const url =
-    `${BACKEND_BASE_URL}/coins/markets` +
-    `?vs_currency=usd` +
-    `&order=market_cap_desc` +
-    `&per_page=50` +
-    `&page=1` +
-    `&sparkline=false` +
-    `&price_change_percentage=1h,24h,7d`;
+  const BACKEND_BASE_URL = "https://cryptovision-ldo7.onrender.com";
+  document.getElementById("backendUrl").textContent = BACKEND_BASE_URL;
 
-  try {
-    dailyInsightEl.textContent = "Loading market analysis...";
-    const res = await fetch(url, { cache: "no-store" });
+  const tbody = document.getElementById("tbody");
+  const statusEl = document.getElementById("status");
+  const btn = document.getElementById("btnRefresh");
 
-    if (!res.ok) {
-      throw new Error("Backend error HTTP " + res.status);
-    }
-
-    const data = await res.json();
-
-    // IMPORTANT: backend returns ARRAY
-    coinsRaw = Array.isArray(data) ? data : [];
-    filteredCoins = [...coinsRaw];
-
-    applySort();
-    renderTable();
-    makeDailyInsight();
-    updateTimestamp();
-
-  } catch (err) {
-    console.error(err);
-    dailyInsightEl.textContent =
-      "❌ Failed to load market data from backend.";
+  function fmtPrice(v){
+    if (v == null || Number.isNaN(v)) return "—";
+    const n = Number(v);
+    if (n >= 1000) return "$" + n.toLocaleString("en-US", {maximumFractionDigits:0});
+    if (n >= 1) return "$" + n.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (n >= 0.01) return "$" + n.toLocaleString("en-US", {minimumFractionDigits:4, maximumFractionDigits:4});
+    return "$" + n.toLocaleString("en-US", {minimumFractionDigits:6, maximumFractionDigits:8});
   }
-}
+  function fmtPct(v){
+    if (v == null || Number.isNaN(v)) return "—";
+    const n = Number(v);
+    const sign = n > 0 ? "+" : "";
+    return sign + n.toFixed(2) + "%";
+  }
+  function fmtAbbr(v){
+    if (v == null || Number.isNaN(v)) return "—";
+    const n = Number(v);
+    if (n >= 1e12) return (n/1e12).toFixed(2) + "T";
+    if (n >= 1e9)  return (n/1e9).toFixed(2) + "B";
+    if (n >= 1e6)  return (n/1e6).toFixed(2) + "M";
+    if (n >= 1e3)  return (n/1e3).toFixed(2) + "K";
+    return n.toFixed(0);
+  }
+  function clsPct(v){
+    if (v == null || Number.isNaN(v)) return "muted";
+    const n = Number(v);
+    if (n > 0) return "pos";
+    if (n < 0) return "neg";
+    return "muted";
+  }
 
+  async function loadMarkets(){
+    const url =
+      `${BACKEND_BASE_URL}/coins/markets` +
+      `?vs_currency=usd` +
+      `&order=market_cap_desc` +
+      `&per_page=50` +
+      `&page=1` +
+      `&sparkline=false` +
+      `&price_change_percentage=1h,24h,7d`;
 
-/* =========================
-   EVENTS
-========================= */
-document.getElementById("refreshBtn").onclick = fetchCoins;
-fetchCoins();
+    statusEl.textContent = "Loading… " + url;
+    tbody.innerHTML = "";
+
+    try{
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+
+      if(!Array.isArray(data) || data.length === 0){
+        statusEl.textContent = "No data returned.";
+        return;
+      }
+
+      statusEl.textContent = `Loaded ${data.length} coins ✓`;
+
+      for(const c of data){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.market_cap_rank ?? "—"}</td>
+          <td style="text-align:left">
+            <strong>${c.name ?? c.id ?? "Unknown"}</strong>
+            <span class="muted"> (${String(c.symbol ?? "").toUpperCase()})</span>
+          </td>
+          <td>${fmtPrice(c.current_price)}</td>
+          <td class="${clsPct(c.price_change_percentage_1h_in_currency)}">${fmtPct(c.price_change_percentage_1h_in_currency)}</td>
+          <td class="${clsPct(c.price_change_percentage_24h)}">${fmtPct(c.price_change_percentage_24h)}</td>
+          <td class="${clsPct(c.price_change_percentage_7d_in_currency)}">${fmtPct(c.price_change_percentage_7d_in_currency)}</td>
+          <td>$${fmtAbbr(c.market_cap)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }catch(err){
+      console.error(err);
+      statusEl.textContent = "❌ Failed: " + String(err);
+    }
+  }
+
+  btn.addEventListener("click", loadMarkets);
+  loadMarkets();
 </script>
 </body>
 </html>
