@@ -1140,6 +1140,36 @@
         }
       });
     }
+// ==========================================================
+// AI PROVIDER LAYER (future-proof)
+// - Today: demo endpoint (/demo/prediction)
+// - Tomorrow: real AI endpoint (/ai/predict) without UI changes
+// ==========================================================
+const AI_PROVIDER = {
+  // switch later to "real" when you add the real model endpoint
+  mode: "demo", // "demo" | "real"
+
+  endpoints: {
+    demo: "/demo/prediction",
+    real: "/ai/predict"
+  }
+};
+
+function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
+  const base = BACKEND_BASE_URL.replace(/\/$/, "");
+  const path = AI_PROVIDER.mode === "real"
+    ? AI_PROVIDER.endpoints.real
+    : AI_PROVIDER.endpoints.demo;
+
+  // keep query params stable for forward compatibility
+  const qs = new URLSearchParams({
+    coin_id: coinId,
+    days: String(days),
+    timeframe: String(timeframe)
+  });
+
+  return `${base}${path}?${qs.toString()}`;
+}
 
     // ==========================================================
     // BACKEND TESTS
@@ -1163,8 +1193,8 @@
         return;
       }
 
-      const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/demo/prediction?coin_id=${encodeURIComponent(coinId)}&days=90`;
-      aiResult.textContent = "Calling: " + url;
+      const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+
 
       try {
         const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
