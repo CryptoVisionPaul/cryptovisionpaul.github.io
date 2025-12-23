@@ -1200,10 +1200,10 @@
     // ==========================================================
     // AI PROVIDER LAYER
     // ==========================================================
-    const AI_PROVIDER = {
-      mode: "demo", // "demo" | "real"
-      endpoints: { demo: "/demo/prediction", real: "/ai/predict" }
-    };
+   const AI_PROVIDER = {
+  mode: "real",
+  endpoints: { demo: "/demo/prediction", real: "/ai/predict" }
+};
 
     function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
       const base = BACKEND_BASE_URL.replace(/\/$/, "");
