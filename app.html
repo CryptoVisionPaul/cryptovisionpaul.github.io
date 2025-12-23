@@ -201,11 +201,7 @@
       border-color:transparent; color:#ecfeff; font-weight:500;
     }
     .btn-small.primary:hover{filter:brightness(1.05)}
-    .btn-small[disabled]{
-      opacity:.55;
-      cursor:not-allowed;
-      filter:none;
-    }
+    .btn-small[disabled]{opacity:.55; cursor:not-allowed; filter:none;}
 
     /* Table */
     .table-wrap{
@@ -360,7 +356,6 @@
 
 <body>
   <div class="shell">
-
     <!-- HEADER -->
     <header class="top-bar">
       <div class="logo-wrap">
@@ -418,7 +413,6 @@
 
     <!-- MAIN GRID -->
     <section class="main-grid">
-
       <!-- LEFT: TABLE -->
       <article class="card">
         <div class="card-header">
@@ -439,7 +433,7 @@
             <option value="change1h">Sort: Biggest 1h moves</option>
             <option value="change7d">Sort: Biggest 7d moves</option>
           </select>
-          <button id="refreshBtn" class="btn-small primary">Refresh</button>
+          <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
         </div>
 
         <div class="table-wrap">
@@ -576,25 +570,23 @@
         </div>
       </div>
     </section>
-
   </div>
 
-  <!-- ✅ ONE CLEAN SCRIPT BLOCK (ALL JS) -->
   <script>
     // ==========================================================
-    // CONFIG (edit ONLY these if needed)
+    // CONFIG
     // ==========================================================
     const API_BASE = "https://api.coingecko.com/api/v3";
     const BACKEND_BASE_URL = "https://cryptovision-ldo7.onrender.com"; // no trailing slash
     const BACKEND_MARKETS_ENDPOINT = "/coins/markets";
 
-    // Rate-limit protection (front-end)
-    const REFRESH_MIN_INTERVAL_MS = 60_000;  // 60 seconds
-    const MARKETS_CACHE_TTL_MS = 60_000;     // 60 seconds cache for markets
+    // Front-end rate-limit + cache
+    const REFRESH_MIN_INTERVAL_MS = 60_000;  // 60s between manual refresh clicks
+    const MARKETS_CACHE_TTL_MS = 60_000;     // 60s local cache freshness
     const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
 
     // ==========================================================
-    // DOM refs
+    // DOM
     // ==========================================================
     const coinsBody = document.getElementById("coinsBody");
     const searchInput = document.getElementById("searchInput");
@@ -682,7 +674,6 @@
       else if (kind === DataSource.COINGECKO) sourceDot.classList.add("warn");
       else if (kind === DataSource.CACHE) sourceDot.classList.add("warn");
       else sourceDot.classList.add("bad");
-
       sourceText.textContent = msg;
     }
 
@@ -729,7 +720,7 @@
       try {
         localStorage.setItem(STORAGE_KEY_MARKETS, JSON.stringify({ ts: Date.now(), data }));
       } catch {
-        // ignore storage failures
+        // ignore
       }
     }
 
@@ -770,7 +761,6 @@
         } catch (err) {
           lastErr = err;
           if (attempt === retries) break;
-
           const wait = retryDelayMs * Math.pow(1.6, attempt);
           await new Promise(r => setTimeout(r, wait));
         } finally {
@@ -810,10 +800,10 @@
     }
 
     // ==========================================================
-    // MAIN: markets loader (backend first, fallback to CG)
+    // MAIN: markets loader
     // ==========================================================
     async function loadMarkets({ reason = "auto" } = {}) {
-      if (isLoadingMarkets) return; // prevent parallel loads
+      if (isLoadingMarkets) return;
       isLoadingMarkets = true;
 
       try {
@@ -823,7 +813,7 @@
         dailyInsightEl.textContent = "Loading market analysis...";
         showLoadingRow("Loading…");
 
-        // 0) If cache is fresh, use it instantly (fast UI), then optionally refresh in background only on manual
+        // 0) If cache is fresh, use it immediately.
         const cached = loadMarketsCache();
         const hasFreshCache = cached && isCacheFresh(cached.ts);
 
@@ -836,11 +826,11 @@
           updateTimestamp();
           setSourceBadge(DataSource.CACHE, "Source: cache (last 60s) ✓");
 
-          // If auto load and cache is fresh, do not hit network (prevents needless requests)
+          // Auto-load should NOT hit the network if cache is fresh.
           if (reason !== "manual") return;
         }
 
-        // 1) Try backend proxy
+        // 1) Backend proxy
         const backendUrl = buildMarketsUrlBase(BACKEND_BASE_URL);
         try {
           const backendData = await fetchJsonWithRetry(backendUrl, {
@@ -855,13 +845,12 @@
 
           coinsRaw = backendData.filter(Boolean);
           saveMarketsCache(coinsRaw);
-
           setSourceBadge(DataSource.BACKEND, `Source: backend proxy ✓ (${BACKEND_BASE_URL})`);
         } catch (errBackend) {
           console.warn("[Markets] backend failed, falling back to CoinGecko direct.", errBackend);
           setSourceBadge(DataSource.COINGECKO, "Source: CoinGecko direct (backend fallback) ⚠");
 
-          // 2) Fallback to CoinGecko direct
+          // 2) CoinGecko direct fallback
           const cgUrl = buildCoinGeckoMarketsUrl();
           const cgData = await fetchJsonWithRetry(cgUrl, {
             timeoutMs: 15000,
@@ -886,7 +875,6 @@
       } catch (err) {
         console.error("[Markets] load failed:", err);
 
-        // if we have ANY cache (even stale), show it instead of empty table
         const cached = loadMarketsCache();
         if (cached && Array.isArray(cached.data) && cached.data.length) {
           coinsRaw = cached.data.filter(Boolean);
@@ -1040,7 +1028,7 @@
         : highVolMoves >= 4 ? "medium (some strong spikes)"
         : "low (mostly moderate moves)";
 
-      const text = `
+      dailyInsightEl.innerHTML = `
         <p>
           Based on <strong>${count24}</strong> top coins by market cap, today’s overall market mood looks
           <strong>${mood}</strong>, with an average 24h change of <strong>${avg24.toFixed(2)}%</strong>.
@@ -1052,7 +1040,6 @@
           <li>Reminder: this is informational only, not financial advice.</li>
         </ul>
       `;
-      dailyInsightEl.innerHTML = text;
     }
 
     // ==========================================================
@@ -1156,7 +1143,7 @@
       if (!chartData) {
         try {
           const url = `${API_BASE}/coins/${id}/market_chart?vs_currency=usd&days=7&interval=hourly`;
-          const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
+          const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900 });
           const prices = data.prices || [];
 
           const labels = [];
@@ -1211,24 +1198,17 @@
     }
 
     // ==========================================================
-    // AI PROVIDER LAYER (future-proof)
+    // AI PROVIDER LAYER
     // ==========================================================
     const AI_PROVIDER = {
       mode: "demo", // "demo" | "real"
-      endpoints: {
-        demo: "/demo/prediction",
-        real: "/ai/predict"
-      }
+      endpoints: { demo: "/demo/prediction", real: "/ai/predict" }
     };
 
     function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
       const base = BACKEND_BASE_URL.replace(/\/$/, "");
       const path = (AI_PROVIDER.mode === "real") ? AI_PROVIDER.endpoints.real : AI_PROVIDER.endpoints.demo;
-      const qs = new URLSearchParams({
-        coin_id: coinId,
-        days: String(days),
-        timeframe: String(timeframe)
-      });
+      const qs = new URLSearchParams({ coin_id: coinId, days: String(days), timeframe: String(timeframe) });
       return `${base}${path}?${qs.toString()}`;
     }
 
@@ -1241,7 +1221,7 @@
 
       btnHealth.disabled = true;
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0, retryDelayMs: 900, mode: "cors" });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0 });
         aiResult.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
         aiResult.textContent = "Health error:\n" + String(err);
@@ -1262,7 +1242,7 @@
 
       btnTestBackend.disabled = true;
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, retryDelayMs: 900, mode: "cors" });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0 });
 
         document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
         document.getElementById("ai-summary-last").textContent =
@@ -1288,14 +1268,16 @@
     searchInput.addEventListener("input", filterCoins);
     sortSelect.addEventListener("change", handleSortChange);
 
-    // Professional refresh handler: anti-spam + no parallel loads
     refreshBtn.addEventListener("click", async () => {
       const now = Date.now();
-      if (now - lastManualRefreshTs < REFRESH_MIN_INTERVAL_MS) {
-        const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - (now - lastManualRefreshTs)) / 1000);
+      const elapsed = now - lastManualRefreshTs;
+
+      if (elapsed < REFRESH_MIN_INTERVAL_MS) {
+        const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - elapsed) / 1000);
         alert(`Te rog așteaptă ${remaining}s înainte de un nou refresh (protecție rate-limit).`);
         return;
       }
+
       lastManualRefreshTs = now;
       await loadMarkets({ reason: "manual" });
     });
@@ -1305,7 +1287,6 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       setSourceBadge("init", "Source: checking…");
-      // One single auto-load on startup (safe). It uses cache first (if fresh) and avoids needless requests.
       loadMarkets({ reason: "auto" });
     });
   </script>
