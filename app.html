@@ -201,6 +201,11 @@
       border-color:transparent; color:#ecfeff; font-weight:500;
     }
     .btn-small.primary:hover{filter:brightness(1.05)}
+    .btn-small[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+      filter:none;
+    }
 
     /* Table */
     .table-wrap{
@@ -334,6 +339,7 @@
       font-weight:800; cursor:pointer;
     }
     .btn:hover{filter:brightness(1.05)}
+    .btn[disabled]{opacity:.55; cursor:not-allowed; filter:none;}
     pre{
       max-height:260px; overflow:auto;
       background:#020617; border-radius:12px;
@@ -580,9 +586,12 @@
     // ==========================================================
     const API_BASE = "https://api.coingecko.com/api/v3";
     const BACKEND_BASE_URL = "https://cryptovision-ldo7.onrender.com"; // no trailing slash
-
-    // Markets endpoint on backend (your FastAPI proxy)
     const BACKEND_MARKETS_ENDPOINT = "/coins/markets";
+
+    // Rate-limit protection (front-end)
+    const REFRESH_MIN_INTERVAL_MS = 60_000;  // 60 seconds
+    const MARKETS_CACHE_TTL_MS = 60_000;     // 60 seconds cache for markets
+    const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
 
     // ==========================================================
     // DOM refs
@@ -620,15 +629,17 @@
     let priceChart = null;
     const chartCache = new Map();
 
-    // Source telemetry
     const DataSource = {
       BACKEND: "backend-proxy",
-      COINGECKO: "coingecko-direct"
+      COINGECKO: "coingecko-direct",
+      CACHE: "cache"
     };
-    let lastSource = null;
+
+    let isLoadingMarkets = false;
+    let lastManualRefreshTs = 0;
 
     // ==========================================================
-    // UTIL: formatting
+    // UTIL
     // ==========================================================
     function updateTimestamp() {
       const now = new Date();
@@ -666,14 +677,64 @@
     }
 
     function setSourceBadge(kind, msg) {
-      lastSource = kind;
-
       sourceDot.classList.remove("ok", "warn", "bad");
       if (kind === DataSource.BACKEND) sourceDot.classList.add("ok");
       else if (kind === DataSource.COINGECKO) sourceDot.classList.add("warn");
+      else if (kind === DataSource.CACHE) sourceDot.classList.add("warn");
       else sourceDot.classList.add("bad");
 
       sourceText.textContent = msg;
+    }
+
+    function showErrorInTable(message) {
+      coinsBody.innerHTML = "";
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.style.textAlign = "left";
+      td.style.color = "#fca5a5";
+      td.textContent = message;
+      tr.appendChild(td);
+      coinsBody.appendChild(tr);
+    }
+
+    function showLoadingRow(message = "Loading…") {
+      coinsBody.innerHTML = "";
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.style.textAlign = "left";
+      td.style.color = "#9ca3af";
+      td.textContent = message;
+      tr.appendChild(td);
+      coinsBody.appendChild(tr);
+    }
+
+    // ==========================================================
+    // CACHE (markets)
+    // ==========================================================
+    function loadMarketsCache() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_MARKETS);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.data) || typeof parsed.ts !== "number") return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveMarketsCache(data) {
+      try {
+        localStorage.setItem(STORAGE_KEY_MARKETS, JSON.stringify({ ts: Date.now(), data }));
+      } catch {
+        // ignore storage failures
+      }
+    }
+
+    function isCacheFresh(ts) {
+      return (Date.now() - ts) <= MARKETS_CACHE_TTL_MS;
     }
 
     // ==========================================================
@@ -681,7 +742,7 @@
     // ==========================================================
     async function fetchJsonWithRetry(url, {
       timeoutMs = 12000,
-      retries = 2,
+      retries = 1,
       retryDelayMs = 900,
       mode = "cors"
     } = {}) {
@@ -702,18 +763,14 @@
 
           if (!res.ok) {
             const text = await res.text().catch(() => "");
-            throw new Error(`HTTP ${res.status} ${res.statusText} ${text ? ("- " + text.slice(0, 160)) : ""}`);
+            throw new Error(`HTTP ${res.status} ${res.statusText} ${text ? ("- " + text.slice(0, 220)) : ""}`);
           }
 
-          const data = await res.json();
-          return data;
+          return await res.json();
         } catch (err) {
           lastErr = err;
-
-          // do not retry on last attempt
           if (attempt === retries) break;
 
-          // exponential backoff (simple)
           const wait = retryDelayMs * Math.pow(1.6, attempt);
           await new Promise(r => setTimeout(r, wait));
         } finally {
@@ -728,10 +785,7 @@
     // DATA: build URLs
     // ==========================================================
     function buildMarketsUrlBase(base) {
-      // base already includes protocol+domain. no trailing slash handling:
       const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
-
-      // backend endpoint expects same query as CoinGecko /coins/markets
       return (
         normalized + BACKEND_MARKETS_ENDPOINT +
         `?vs_currency=usd` +
@@ -758,87 +812,102 @@
     // ==========================================================
     // MAIN: markets loader (backend first, fallback to CG)
     // ==========================================================
-    async function loadMarkets() {
-      dailyInsightEl.textContent = "Loading market analysis...";
-      coinsBody.innerHTML = "";
-      coinsRaw = [];
-      filteredCoins = [];
+    async function loadMarkets({ reason = "auto" } = {}) {
+      if (isLoadingMarkets) return; // prevent parallel loads
+      isLoadingMarkets = true;
 
-      // show placeholder row
-      {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 7;
-        td.style.textAlign = "left";
-        td.style.color = "#9ca3af";
-        td.textContent = "Loading…";
-        tr.appendChild(td);
-        coinsBody.appendChild(tr);
-      }
-
-      // 1) Try backend proxy first
-      const backendUrl = buildMarketsUrlBase(BACKEND_BASE_URL);
       try {
-        const backendData = await fetchJsonWithRetry(backendUrl, {
-          timeoutMs: 15000,
-          retries: 2,
-          retryDelayMs: 1000,
-          mode: "cors"
-        });
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Loading…";
 
-        if (!Array.isArray(backendData)) {
-          throw new Error("Backend returned non-array JSON (expected list of coins).");
+        dailyInsightEl.textContent = "Loading market analysis...";
+        showLoadingRow("Loading…");
+
+        // 0) If cache is fresh, use it instantly (fast UI), then optionally refresh in background only on manual
+        const cached = loadMarketsCache();
+        const hasFreshCache = cached && isCacheFresh(cached.ts);
+
+        if (hasFreshCache) {
+          coinsRaw = cached.data.filter(Boolean);
+          filteredCoins = [...coinsRaw];
+          applySort();
+          renderTable();
+          makeDailyInsight();
+          updateTimestamp();
+          setSourceBadge(DataSource.CACHE, "Source: cache (last 60s) ✓");
+
+          // If auto load and cache is fresh, do not hit network (prevents needless requests)
+          if (reason !== "manual") return;
         }
 
-        coinsRaw = backendData;
-        setSourceBadge(DataSource.BACKEND, `Source: backend proxy ✓ (${BACKEND_BASE_URL})`);
-      } catch (errBackend) {
-        console.warn("[Markets] backend failed, falling back to CoinGecko direct.", errBackend);
-        setSourceBadge(DataSource.COINGECKO, `Source: CoinGecko direct (backend fallback) ⚠`);
-
-        // 2) Fallback to CoinGecko direct
-        const cgUrl = buildCoinGeckoMarketsUrl();
+        // 1) Try backend proxy
+        const backendUrl = buildMarketsUrlBase(BACKEND_BASE_URL);
         try {
+          const backendData = await fetchJsonWithRetry(backendUrl, {
+            timeoutMs: 15000,
+            retries: 1,
+            retryDelayMs: 1000
+          });
+
+          if (!Array.isArray(backendData)) {
+            throw new Error("Backend returned non-array JSON (expected list of coins).");
+          }
+
+          coinsRaw = backendData.filter(Boolean);
+          saveMarketsCache(coinsRaw);
+
+          setSourceBadge(DataSource.BACKEND, `Source: backend proxy ✓ (${BACKEND_BASE_URL})`);
+        } catch (errBackend) {
+          console.warn("[Markets] backend failed, falling back to CoinGecko direct.", errBackend);
+          setSourceBadge(DataSource.COINGECKO, "Source: CoinGecko direct (backend fallback) ⚠");
+
+          // 2) Fallback to CoinGecko direct
+          const cgUrl = buildCoinGeckoMarketsUrl();
           const cgData = await fetchJsonWithRetry(cgUrl, {
             timeoutMs: 15000,
-            retries: 2,
-            retryDelayMs: 1200,
-            mode: "cors"
+            retries: 1,
+            retryDelayMs: 1200
           });
 
           if (!Array.isArray(cgData)) {
             throw new Error("CoinGecko returned non-array JSON.");
           }
-          coinsRaw = cgData;
-        } catch (errCg) {
-          console.error("[Markets] fallback CoinGecko failed.", errCg);
-          setSourceBadge("error", "Source: FAILED (backend + CoinGecko)");
-          showErrorInTable("Failed to load markets. Open Console for details, then try Refresh.");
-          dailyInsightEl.textContent =
-            "Error loading data. Please try Refresh. If it persists: backend may be sleeping, or CoinGecko rate-limit may apply.";
-          return;
+
+          coinsRaw = cgData.filter(Boolean);
+          saveMarketsCache(coinsRaw);
         }
+
+        filteredCoins = [...coinsRaw];
+        applySort();
+        renderTable();
+        makeDailyInsight();
+        updateTimestamp();
+
+      } catch (err) {
+        console.error("[Markets] load failed:", err);
+
+        // if we have ANY cache (even stale), show it instead of empty table
+        const cached = loadMarketsCache();
+        if (cached && Array.isArray(cached.data) && cached.data.length) {
+          coinsRaw = cached.data.filter(Boolean);
+          filteredCoins = [...coinsRaw];
+          applySort();
+          renderTable();
+          makeDailyInsight();
+          updateTimestamp();
+          setSourceBadge(DataSource.CACHE, "Source: cache (fallback after error) ⚠");
+          dailyInsightEl.textContent = "Loaded from cache due to upstream error (rate-limit / backend / network).";
+        } else {
+          setSourceBadge("error", "Source: FAILED (backend + CoinGecko + no cache)");
+          showErrorInTable("Failed to load markets. Try again in 60s (rate-limit protection).");
+          dailyInsightEl.textContent =
+            "Error loading data. This can happen when CoinGecko rate-limits requests. Please wait and try again.";
+        }
+      } finally {
+        isLoadingMarkets = false;
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "Refresh";
       }
-
-      // normalize and render
-      coinsRaw = coinsRaw.filter(Boolean);
-      filteredCoins = [...coinsRaw];
-      applySort();
-      renderTable();
-      makeDailyInsight();
-      updateTimestamp();
-    }
-
-    function showErrorInTable(message) {
-      coinsBody.innerHTML = "";
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 7;
-      td.style.textAlign = "left";
-      td.style.color = "#fca5a5";
-      td.textContent = message;
-      tr.appendChild(td);
-      coinsBody.appendChild(tr);
     }
 
     // ==========================================================
@@ -1140,36 +1209,28 @@
         }
       });
     }
-// ==========================================================
-// AI PROVIDER LAYER (future-proof)
-// - Today: demo endpoint (/demo/prediction)
-// - Tomorrow: real AI endpoint (/ai/predict) without UI changes
-// ==========================================================
-const AI_PROVIDER = {
-  // switch later to "real" when you add the real model endpoint
-  mode: "demo", // "demo" | "real"
 
-  endpoints: {
-    demo: "/demo/prediction",
-    real: "/ai/predict"
-  }
-};
+    // ==========================================================
+    // AI PROVIDER LAYER (future-proof)
+    // ==========================================================
+    const AI_PROVIDER = {
+      mode: "demo", // "demo" | "real"
+      endpoints: {
+        demo: "/demo/prediction",
+        real: "/ai/predict"
+      }
+    };
 
-function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
-  const base = BACKEND_BASE_URL.replace(/\/$/, "");
-  const path = AI_PROVIDER.mode === "real"
-    ? AI_PROVIDER.endpoints.real
-    : AI_PROVIDER.endpoints.demo;
-
-  // keep query params stable for forward compatibility
-  const qs = new URLSearchParams({
-    coin_id: coinId,
-    days: String(days),
-    timeframe: String(timeframe)
-  });
-
-  return `${base}${path}?${qs.toString()}`;
-}
+    function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
+      const base = BACKEND_BASE_URL.replace(/\/$/, "");
+      const path = (AI_PROVIDER.mode === "real") ? AI_PROVIDER.endpoints.real : AI_PROVIDER.endpoints.demo;
+      const qs = new URLSearchParams({
+        coin_id: coinId,
+        days: String(days),
+        timeframe: String(timeframe)
+      });
+      return `${base}${path}?${qs.toString()}`;
+    }
 
     // ==========================================================
     // BACKEND TESTS
@@ -1178,11 +1239,14 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
       const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/health`;
       aiResult.textContent = "Calling: " + url;
 
+      btnHealth.disabled = true;
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 1, retryDelayMs: 900, mode: "cors" });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0, retryDelayMs: 900, mode: "cors" });
         aiResult.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
         aiResult.textContent = "Health error:\n" + String(err);
+      } finally {
+        btnHealth.disabled = false;
       }
     }
 
@@ -1194,11 +1258,11 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
       }
 
       const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+      aiResult.textContent = "Calling: " + url;
 
-
+      btnTestBackend.disabled = true;
       try {
         const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, retryDelayMs: 900, mode: "cors" });
-
 
         document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
         document.getElementById("ai-summary-last").textContent =
@@ -1212,22 +1276,37 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
       } catch (err) {
         aiResult.textContent =
           "Error while calling backend:\n" + String(err) +
-          "\n\nNotes:\n- Backend must allow CORS for GitHub Pages\n- If Render is sleeping, first call /health and wait 10-30s\n";
+          "\n\nNotes:\n- If CoinGecko is rate-limiting, wait and retry later\n- For Render sleeping: call /health first\n";
+      } finally {
+        btnTestBackend.disabled = false;
       }
     }
 
     // ==========================================================
-    // INIT + EVENTS
+    // EVENTS + INIT
     // ==========================================================
     searchInput.addEventListener("input", filterCoins);
     sortSelect.addEventListener("change", handleSortChange);
-    refreshBtn.addEventListener("click", loadMarkets);
+
+    // Professional refresh handler: anti-spam + no parallel loads
+    refreshBtn.addEventListener("click", async () => {
+      const now = Date.now();
+      if (now - lastManualRefreshTs < REFRESH_MIN_INTERVAL_MS) {
+        const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - (now - lastManualRefreshTs)) / 1000);
+        alert(`Te rog așteaptă ${remaining}s înainte de un nou refresh (protecție rate-limit).`);
+        return;
+      }
+      lastManualRefreshTs = now;
+      await loadMarkets({ reason: "manual" });
+    });
+
     btnTestBackend.addEventListener("click", handleAiBackendTest);
     btnHealth.addEventListener("click", testHealth);
 
     document.addEventListener("DOMContentLoaded", () => {
       setSourceBadge("init", "Source: checking…");
-      loadMarkets();
+      // One single auto-load on startup (safe). It uses cache first (if fresh) and avoids needless requests.
+      loadMarkets({ reason: "auto" });
     });
   </script>
 </body>
