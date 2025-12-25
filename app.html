@@ -8,7 +8,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CryptoVision – AI Crypto Insights</title>
-  <meta name="description" content="CryptoVision – live crypto prices, pseudo-AI insights, robust backend proxy (Render) with CoinGecko fallback." />
+  <meta name="description" content="CryptoVision – live crypto prices + AI insights. Backend proxy + fallback." />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -61,7 +61,6 @@
       opacity:.9; pointer-events:none; z-index:-1;
     }
 
-    /* Top bar */
     .top-bar{
       display:flex; justify-content:space-between; gap:16px;
       align-items:center; margin-bottom:18px; flex-wrap:wrap;
@@ -115,7 +114,6 @@
     .source-dot.bad{background:#f97373; box-shadow:0 0 0 4px rgba(249,115,115,.18);}
     .source-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* Feature section */
     .grid-top{
       display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr);
       gap:18px; margin-bottom:16px;
@@ -146,7 +144,6 @@
     }
     .top-info-card strong{color:#e5e7eb}
 
-    /* Layout */
     .main-grid{
       display:grid;
       grid-template-columns:minmax(0,3.3fr) minmax(0,2.7fr);
@@ -161,12 +158,6 @@
       backdrop-filter:blur(18px);
       position:relative; overflow:hidden;
     }
-    .card::before{
-      content:""; position:absolute; inset:-40%;
-      background:radial-gradient(circle at 0 0, rgba(59,130,246,.22), transparent 55%);
-      opacity:0; transition:opacity .35s ease-out; pointer-events:none; z-index:-1;
-    }
-    .card:hover::before{opacity:.25}
 
     .card-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
     .card-title{font-size:14px;font-weight:600}
@@ -181,7 +172,6 @@
     .badge.orange{border-color:rgba(234,179,8,.7);background:rgba(234,179,8,.16);color:#fef3c7}
     .badge.gray{border-color:rgba(148,163,184,.35);background:rgba(15,23,42,.5);color:#e5e7eb}
 
-    /* Toolbar */
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;font-size:12px}
     .search-box{flex:1}
     .search-input{
@@ -200,10 +190,8 @@
       background:linear-gradient(to right,#2563eb,#22c55e);
       border-color:transparent; color:#ecfeff; font-weight:500;
     }
-    .btn-small.primary:hover{filter:brightness(1.05)}
     .btn-small[disabled]{opacity:.55; cursor:not-allowed; filter:none;}
 
-    /* Table */
     .table-wrap{
       max-height:420px; overflow:auto; border-radius:16px;
       border:1px solid rgba(31,41,55,.9);
@@ -239,7 +227,6 @@
     .chg-pos{color:#22c55e}
     .chg-neg{color:#f97373}
 
-    /* Right panel */
     .ai-text{font-size:12px; line-height:1.55; color:#e5e7eb}
     .ai-text strong{color:#bfdbfe}
     .ai-list{margin-top:8px; list-style:none; font-size:12px; color:#cbd5f5}
@@ -283,8 +270,8 @@
 
     .scenario-block{margin-top:8px; font-size:11px}
     .scenario-block strong{color:#bfdbfe}
-    .scenario-list{list-style:none; margin-top:4px}
-    .scenario-list li{margin-bottom:2px}
+    .scenario-list{list-style:none; margin-top:6px}
+    .scenario-list li{margin-bottom:6px; line-height:1.4}
 
     .chart-wrap{
       margin-top:10px;
@@ -307,7 +294,6 @@
 
     .footer-note{margin-top:10px; font-size:10px; color:#6b7280; text-align:right}
 
-    /* Backend panel */
     .backend-grid{
       display:grid;
       grid-template-columns:minmax(0,1fr) minmax(0,1fr);
@@ -356,13 +342,13 @@
 
 <body>
   <div class="shell">
-    <!-- HEADER -->
+
     <header class="top-bar">
       <div class="logo-wrap">
         <div class="logo-badge">CV</div>
         <div class="title-block">
           <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
-          <p>Live crypto prices + pseudo-AI insights. (Professional backend proxy + fallback)</p>
+          <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
         </div>
       </div>
       <div class="status-wrap">
@@ -375,45 +361,40 @@
       </div>
     </header>
 
-    <!-- FEATURES -->
     <section class="grid-top">
       <div>
         <div class="pill-row">
           <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
           <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
-          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Per-coin quick analysis</span></div>
+          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Per-coin AI scenarios</span></div>
           <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
           <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">AdSense / affiliate area</span></div>
-          <div class="feature-pill info"><span class="icon">∞</span><span class="label">Prepared for real AI backend</span></div>
+          <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
         </div>
         <p class="mini-note">
-          This page runs in the browser (GitHub Pages). Markets are loaded via your Render backend proxy for stability.
-          If backend is sleeping / CORS / down, it automatically falls back to CoinGecko directly.
+          Markets load via Render backend proxy. If backend is down/sleeping, it falls back to CoinGecko direct.
         </p>
       </div>
 
       <div class="top-info-card">
         <div class="card-header" style="margin-bottom:6px;">
           <div>
-            <div class="card-title">CryptoVision “Auto-Analysis” module</div>
-            <div class="card-subtitle">Live data + rule-based logic for a quick market pulse.</div>
+            <div class="card-title">CryptoVision AI module</div>
+            <div class="card-subtitle">Per-coin prediction + probability scenarios.</div>
           </div>
-          <span class="badge blue">Beta</span>
+          <span class="badge blue">Live</span>
         </div>
         <p style="margin-bottom:4px;">
-          <strong>How it works:</strong> CryptoVision loads the top 50 coins by market cap,
-          computes average 24h change, top gainer/loser, volatility level, and generates a summary.
+          <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
+          then formats the output into “Most probable / Alternative / Rare” scenarios.
         </p>
         <p class="mini-note">
-          Today it’s pseudo-AI (rules). Later we can switch to real AI (LSTM / Transformer) via an API
-          without changing the UI.
+          Educational / informational only. Not financial advice.
         </p>
       </div>
     </section>
 
-    <!-- MAIN GRID -->
     <section class="main-grid">
-      <!-- LEFT: TABLE -->
       <article class="card">
         <div class="card-header">
           <div>
@@ -454,15 +435,14 @@
         </div>
       </article>
 
-      <!-- RIGHT: INSIGHT + SELECTED -->
       <article>
         <div class="card" style="margin-bottom:12px;">
           <div class="card-header">
             <div>
-              <div class="card-title">CryptoVision AI – Daily Insight</div>
-              <div class="card-subtitle">Automatic summary based on the top 50 coins.</div>
+              <div class="card-title">CryptoVision – Daily Insight</div>
+              <div class="card-subtitle">Quick summary based on the top 50 coins.</div>
             </div>
-            <span class="badge green">Pseudo-AI engine</span>
+            <span class="badge green">Rules</span>
           </div>
           <div class="ai-text" id="dailyInsight">Loading market analysis...</div>
         </div>
@@ -471,7 +451,7 @@
           <div class="card-header">
             <div>
               <div class="card-title">Selected coin analysis</div>
-              <div class="card-subtitle">Click a coin in the list to get details + chart.</div>
+              <div class="card-subtitle">Click a coin in the list to get AI scenarios + chart.</div>
             </div>
             <span class="badge orange">Focus asset</span>
           </div>
@@ -496,14 +476,14 @@
               <div class="metric-note">Project size vs market.</div>
             </div>
             <div class="metric-item">
-              <div class="metric-label">Directional bias</div>
+              <div class="metric-label">AI / RSI</div>
               <div class="metric-value" id="metricBias">—</div>
-              <div class="metric-note">Rule-based (24h + 7d).</div>
+              <div class="metric-note">From backend prediction.</div>
             </div>
           </div>
 
           <div class="ai-comment" id="coinComment">
-            Select a coin to generate a pseudo-AI comment and simple support/resistance scenarios.
+            Select a coin to load AI prediction and probability scenarios.
           </div>
 
           <div class="scenario-block">
@@ -528,19 +508,17 @@
       </article>
     </section>
 
-    <!-- BACKEND TEST + SUMMARY -->
     <section class="backend-grid">
       <div class="panel">
-        <h2>AI Backend Test</h2>
+        <h2>Backend Test</h2>
         <p>
-          Health check: <code>/health</code> • Prediction demo: <code>/demo/prediction</code>
-          (example: bitcoin, ethereum).
+          Health: <code>/health</code> • AI: <code>/ai/predict</code> (example: bitcoin, ethereum).
         </p>
 
         <div class="row">
           <label for="ai-coin-id-input" style="font-size:12px; color:var(--text-soft);">Coin ID:</label>
           <input id="ai-coin-id-input" class="input" type="text" value="bitcoin" />
-          <button class="btn" type="button" id="btnTestBackend">Test AI Backend</button>
+          <button class="btn" type="button" id="btnTestBackend">Test AI</button>
           <button class="btn" type="button" id="btnHealth" style="background:#60a5fa;">Health</button>
         </div>
 
@@ -548,8 +526,8 @@
       </div>
 
       <div class="panel">
-        <h3>AI Summary (Demo)</h3>
-        <p>This box updates after you call the backend prediction endpoint.</p>
+        <h3>AI Summary</h3>
+        <p>This box updates after you call the AI endpoint.</p>
         <div style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin-top:10px; font-size:12px;">
           <div>
             <div style="opacity:.75;">Coin</div>
@@ -560,7 +538,7 @@
             <strong id="ai-summary-last">-</strong>
           </div>
           <div>
-            <div style="opacity:.75;">Predicted price</div>
+            <div style="opacity:.75;">Predicted</div>
             <strong id="ai-summary-predicted">-</strong>
           </div>
           <div>
@@ -570,6 +548,7 @@
         </div>
       </div>
     </section>
+
   </div>
 
   <script>
@@ -581,9 +560,12 @@
     const BACKEND_MARKETS_ENDPOINT = "/coins/markets";
 
     // Front-end rate-limit + cache
-    const REFRESH_MIN_INTERVAL_MS = 60_000;  // 60s between manual refresh clicks
-    const MARKETS_CACHE_TTL_MS = 60_000;     // 60s local cache freshness
+    const REFRESH_MIN_INTERVAL_MS = 60_000;
+    const MARKETS_CACHE_TTL_MS = 60_000;
     const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
+
+    // AI endpoint (REAL)
+    const AI_ENDPOINT = "/ai/predict";
 
     // ==========================================================
     // DOM
@@ -719,9 +701,7 @@
     function saveMarketsCache(data) {
       try {
         localStorage.setItem(STORAGE_KEY_MARKETS, JSON.stringify({ ts: Date.now(), data }));
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
     function isCacheFresh(ts) {
@@ -767,7 +747,6 @@
           clearTimeout(timer);
         }
       }
-
       throw lastErr;
     }
 
@@ -799,6 +778,16 @@
       );
     }
 
+    function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
+      const base = BACKEND_BASE_URL.replace(/\/$/, "");
+      const qs = new URLSearchParams({
+        coin_id: coinId,
+        days: String(days),
+        timeframe: String(timeframe)
+      });
+      return `${base}${AI_ENDPOINT}?${qs.toString()}`;
+    }
+
     // ==========================================================
     // MAIN: markets loader
     // ==========================================================
@@ -813,7 +802,6 @@
         dailyInsightEl.textContent = "Loading market analysis...";
         showLoadingRow("Loading…");
 
-        // 0) If cache is fresh, use it immediately.
         const cached = loadMarketsCache();
         const hasFreshCache = cached && isCacheFresh(cached.ts);
 
@@ -825,43 +813,22 @@
           makeDailyInsight();
           updateTimestamp();
           setSourceBadge(DataSource.CACHE, "Source: cache (last 60s) ✓");
-
-          // Auto-load should NOT hit the network if cache is fresh.
           if (reason !== "manual") return;
         }
 
-        // 1) Backend proxy
         const backendUrl = buildMarketsUrlBase(BACKEND_BASE_URL);
         try {
-          const backendData = await fetchJsonWithRetry(backendUrl, {
-            timeoutMs: 15000,
-            retries: 1,
-            retryDelayMs: 1000
-          });
-
-          if (!Array.isArray(backendData)) {
-            throw new Error("Backend returned non-array JSON (expected list of coins).");
-          }
-
+          const backendData = await fetchJsonWithRetry(backendUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1000 });
+          if (!Array.isArray(backendData)) throw new Error("Backend returned non-array JSON.");
           coinsRaw = backendData.filter(Boolean);
           saveMarketsCache(coinsRaw);
           setSourceBadge(DataSource.BACKEND, `Source: backend proxy ✓ (${BACKEND_BASE_URL})`);
         } catch (errBackend) {
           console.warn("[Markets] backend failed, falling back to CoinGecko direct.", errBackend);
           setSourceBadge(DataSource.COINGECKO, "Source: CoinGecko direct (backend fallback) ⚠");
-
-          // 2) CoinGecko direct fallback
           const cgUrl = buildCoinGeckoMarketsUrl();
-          const cgData = await fetchJsonWithRetry(cgUrl, {
-            timeoutMs: 15000,
-            retries: 1,
-            retryDelayMs: 1200
-          });
-
-          if (!Array.isArray(cgData)) {
-            throw new Error("CoinGecko returned non-array JSON.");
-          }
-
+          const cgData = await fetchJsonWithRetry(cgUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1200 });
+          if (!Array.isArray(cgData)) throw new Error("CoinGecko returned non-array JSON.");
           coinsRaw = cgData.filter(Boolean);
           saveMarketsCache(coinsRaw);
         }
@@ -874,7 +841,6 @@
 
       } catch (err) {
         console.error("[Markets] load failed:", err);
-
         const cached = loadMarketsCache();
         if (cached && Array.isArray(cached.data) && cached.data.length) {
           coinsRaw = cached.data.filter(Boolean);
@@ -884,12 +850,11 @@
           makeDailyInsight();
           updateTimestamp();
           setSourceBadge(DataSource.CACHE, "Source: cache (fallback after error) ⚠");
-          dailyInsightEl.textContent = "Loaded from cache due to upstream error (rate-limit / backend / network).";
+          dailyInsightEl.textContent = "Loaded from cache due to upstream error.";
         } else {
           setSourceBadge("error", "Source: FAILED (backend + CoinGecko + no cache)");
-          showErrorInTable("Failed to load markets. Try again in 60s (rate-limit protection).");
-          dailyInsightEl.textContent =
-            "Error loading data. This can happen when CoinGecko rate-limits requests. Please wait and try again.";
+          showErrorInTable("Failed to load markets. Try again in 60s.");
+          dailyInsightEl.textContent = "Error loading data (rate-limit / backend / network).";
         }
       } finally {
         isLoadingMarkets = false;
@@ -995,7 +960,7 @@
     }
 
     // ==========================================================
-    // DAILY INSIGHT
+    // DAILY INSIGHT (rules)
     // ==========================================================
     function makeDailyInsight() {
       if (!coinsRaw.length) {
@@ -1037,13 +1002,115 @@
           <li><strong>Top gainer:</strong> <strong>${topGainer?.name ?? "N/A"}</strong> (${formatPercent(topGainer?.price_change_percentage_24h)} / 24h)</li>
           <li><strong>Top loser:</strong> <strong>${topLoser?.name ?? "N/A"}</strong> (${formatPercent(topLoser?.price_change_percentage_24h)} / 24h)</li>
           <li><strong>Volatility:</strong> <strong>${volatility}</strong></li>
-          <li>Reminder: this is informational only, not financial advice.</li>
+          <li>Educational only, not financial advice.</li>
         </ul>
       `;
     }
 
     // ==========================================================
-    // SELECT COIN + CHART
+    // AI: fetch + scenarios format (Most / Alt / Rare)
+    // ==========================================================
+    async function fetchAiPredictionForCoin(coinId) {
+      const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+      return await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0 });
+    }
+
+    function computeProbabilisticScenarios({ last, predicted, low, high }) {
+      // small buffers for "spike" and "acceptance"
+      const spikeBuffer = 0.003;   // 0.3%
+      const acceptBuffer = 0.006;  // 0.6%
+
+      // direction from AI
+      const delta = (predicted - last) / Math.max(1e-9, last);
+      const isBull = delta > 0.002;   // > +0.2%
+      const isBear = delta < -0.002;  // < -0.2%
+
+      // confidence from interval width
+      const width = (high - low) / Math.max(1e-9, last);
+      const tight = width < 0.04; // <4% interval ~ "tighter"
+      const mostProb = tight ? 65 : 62;
+      const altProb  = tight ? 25 : 28;
+      const rareProb = Math.max(5, 100 - mostProb - altProb);
+
+      if (isBear) {
+        const reaction = last;
+        const t1 = Math.max(low, predicted);
+        const t2 = low;
+        const t3 = low * (1 - 0.01);
+
+        const spikeHi = high * (1 + spikeBuffer);
+        const acceptHi = high * (1 + acceptBuffer);
+
+        return {
+          most: { prob: mostProb, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
+            `➡️ Reacție bearish din ${formatPrice(reaction)}`,
+            `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
+          ]},
+          alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
+            `➡️ Spike scurt peste ${formatPrice(high)} – ${formatPrice(spikeHi)}`
+          ]},
+          rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
+            `➡️ Acceptare peste ${formatPrice(acceptHi)}`
+          ]}
+        };
+      }
+
+      if (isBull) {
+        const reaction = last;
+        const t1 = Math.min(high, predicted);
+        const t2 = high;
+        const t3 = high * (1 + 0.01);
+
+        const spikeLo = low * (1 - spikeBuffer);
+        const acceptLo = low * (1 - acceptBuffer);
+
+        return {
+          most: { prob: mostProb, title: "📈 Scenariul CEL MAI PROBABIL", lines: [
+            `➡️ Reacție bullish din ${formatPrice(reaction)}`,
+            `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
+          ]},
+          alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
+            `➡️ Spike scurt sub ${formatPrice(low)} – ${formatPrice(spikeLo)}`
+          ]},
+          rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
+            `➡️ Acceptare sub ${formatPrice(acceptLo)}`
+          ]}
+        };
+      }
+
+      // neutral
+      return {
+        most: { prob: 62, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
+          `➡️ Range / consolidare în jurul ${formatPrice(last)}`,
+          `${formatPrice(low)} ↔ ${formatPrice(high)}`
+        ]},
+        alt: { prob: 28, title: "🔄 Scenariul alternativ", lines: [
+          `➡️ Spike scurt către ${formatPrice(high * (1 + spikeBuffer))} sau ${formatPrice(low * (1 - spikeBuffer))}`
+        ]},
+        rare:{ prob: 10, title: "🟢 Scenariul mai rar", lines: [
+          `➡️ Acceptare în afara intervalului (${formatPrice(high * (1 + acceptBuffer))} / ${formatPrice(low * (1 - acceptBuffer))})`
+        ]}
+      };
+    }
+
+    function renderProbabilisticScenarioList(scenarios) {
+      scenarioListEl.innerHTML = "";
+
+      const blocks = [scenarios.most, scenarios.alt, scenarios.rare];
+      for (const b of blocks) {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div><strong>${b.title} (≈${b.prob}%)</strong></div>
+          <div style="margin-top:2px;">
+            ${b.lines.map(line => `<div>${line}</div>`).join("")}
+          </div>
+        `;
+        scenarioListEl.appendChild(li);
+      }
+    }
+
+    // ==========================================================
+    // SELECT COIN + CHART + AI
     // ==========================================================
     async function handleCoinClick(id) {
       const coin = coinsRaw.find((c) => c.id === id);
@@ -1071,146 +1138,38 @@
       pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
       selectedPillsEl.appendChild(pill7d);
 
-      const biasInfo = computeBias(coin);
-      metricBiasEl.textContent = biasInfo.label;
-      coinCommentEl.textContent = biasInfo.comment;
-      renderScenarios(biasInfo);
-
+      // Chart (still CoinGecko direct)
       await loadChartForCoin(coin);
-    }
 
-   function computeProbabilisticScenarios({ last, predicted, low, high, rsi }) {
-  // Buffere mici ca să avem „spike” și „acceptare”
-  const spikeBuffer = 0.003;     // 0.3%
-  const acceptBuffer = 0.006;    // 0.6%
+      // AI prediction + scenarios
+      metricBiasEl.textContent = "Loading AI…";
+      coinCommentEl.textContent = "Fetching AI prediction from backend…";
+      scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
 
-  // Direcția principală (AI)
-  const delta = (predicted - last) / Math.max(1e-9, last);
-  const isBull = delta > 0.002;      // > +0.2%
-  const isBear = delta < -0.002;     // < -0.2%
+      try {
+        const ai = await fetchAiPredictionForCoin(coin.id);
 
-  // Ajustare probabilități în funcție de “confidence”
-  // Dacă intervalul e strâns (high-low mic), creștem “most probable”.
-  const width = (high - low) / Math.max(1e-9, last);
-  const tight = width < 0.04; // <4% e destul de tight pentru crypto daily
-  const mostProb = tight ? 65 : 62;
-  const altProb = tight ? 25 : 28;
-  const rareProb = 100 - mostProb - altProb; // rămâne ~10
+        const last = Number(ai.last_price);
+        const predicted = Number(ai.predicted_price);
+        const low = Number(ai.prediction_interval_68?.low);
+        const high = Number(ai.prediction_interval_68?.high);
+        const rsi = Number(ai.indicators?.rsi);
 
-  // Construim nivelele:
-  // - Most probable: spre predicted + zona bandă relevantă
-  // - Alternativ: spike spre banda opusă
-  // - Rar: acceptare peste confirmare (high+buffer) / sub (low-buffer)
+        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
+        renderProbabilisticScenarioList(scenarios);
 
-  // Dacă AI e bearish: focus pe scădere spre low/în interiorul intervalului
-  if (isBear) {
-    const reaction = last; // “Reacție bearish din X”
-    const target1 = Math.max(low, predicted);       // primul target
-    const target2 = low;                            // extensie
-    const target3 = low * (1 - 0.01);               // ușor sub low
+        const model = ai.model || "ai";
+        metricBiasEl.textContent = `${model} • RSI ${Number.isFinite(rsi) ? rsi.toFixed(2) : "—"}`;
 
-    const spike = high * (1 + spikeBuffer);         // spike scurt peste high
-    const accept = high * (1 + acceptBuffer);       // acceptare peste confirmare
+        coinCommentEl.textContent =
+          `Predicție: ${formatPrice(predicted)} (interval 68%: ${formatPrice(low)} – ${formatPrice(high)}).`;
 
-    return {
-      most: {
-        prob: mostProb,
-        lines: [
-          `➡️ Reacție bearish din ${formatPrice(reaction)}`,
-          `${formatPrice(target1)} → ${formatPrice(target2)} → ${formatPrice(target3)}`
-        ]
-      },
-      alt: {
-        prob: altProb,
-        lines: [
-          `➡️ Spike scurt peste ${formatPrice(high)} – ${formatPrice(spike)}`
-        ]
-      },
-      rare: {
-        prob: rareProb,
-        lines: [
-          `➡️ Acceptare peste ${formatPrice(accept)}`
-        ]
+      } catch (e) {
+        metricBiasEl.textContent = "AI unavailable";
+        coinCommentEl.textContent = "AI endpoint failed. Try again later.";
+        scenarioListEl.innerHTML = "<li>AI indisponibil momentan.</li>";
+        console.error("[AI] failed:", e);
       }
-    };
-  }
-
-  // Dacă AI e bullish: invers
-  if (isBull) {
-    const reaction = last;
-    const target1 = Math.min(high, predicted);
-    const target2 = high;
-    const target3 = high * (1 + 0.01);
-
-    const spikeDown = low * (1 - spikeBuffer);
-    const accept = low * (1 - acceptBuffer);
-
-    return {
-      most: {
-        prob: mostProb,
-        lines: [
-          `➡️ Reacție bullish din ${formatPrice(reaction)}`,
-          `${formatPrice(target1)} → ${formatPrice(target2)} → ${formatPrice(target3)}`
-        ]
-      },
-      alt: {
-        prob: altProb,
-        lines: [
-          `➡️ Spike scurt sub ${formatPrice(low)} – ${formatPrice(spikeDown)}`
-        ]
-      },
-      rare: {
-        prob: rareProb,
-        lines: [
-          `➡️ Acceptare sub ${formatPrice(accept)}`
-        ]
-      }
-    };
-  }
-
-  // Neutral: range logic
-  return {
-    most: {
-      prob: 62,
-      lines: [
-        `➡️ Range / consolidare în jurul ${formatPrice(last)}`,
-        `${formatPrice(low)} ↔ ${formatPrice(high)}`
-      ]
-    },
-    alt: {
-      prob: 28,
-      lines: [
-        `➡️ Spike scurt către ${formatPrice(high * (1 + spikeBuffer))} sau ${formatPrice(low * (1 - spikeBuffer))}`
-      ]
-    },
-    rare: {
-      prob: 10,
-      lines: [
-        `➡️ Acceptare în afara intervalului (${formatPrice(high * (1 + acceptBuffer))} / ${formatPrice(low * (1 - acceptBuffer))})`
-      ]
-    }
-  };
-}
-
-
-    function renderScenarios(biasInfo) {
-      const sup = biasInfo.support;
-      const res = biasInfo.resistance;
-
-      const longTrigger = res * 1.005;
-      const shortTrigger = sup * 0.995;
-
-      scenarioListEl.innerHTML = "";
-      const li1 = document.createElement("li");
-      li1.textContent = `Long only above ${formatPrice(longTrigger)} (breakout confirmation).`;
-      const li2 = document.createElement("li");
-      li2.textContent = `Short only below ${formatPrice(shortTrigger)} (clear support breakdown).`;
-      const li3 = document.createElement("li");
-      li3.textContent = `No-trade zone roughly between ${formatPrice(sup)} and ${formatPrice(res)} (consolidation).`;
-
-      scenarioListEl.appendChild(li1);
-      scenarioListEl.appendChild(li2);
-      scenarioListEl.appendChild(li3);
     }
 
     async function loadChartForCoin(coin) {
@@ -1220,7 +1179,7 @@
       if (!chartData) {
         try {
           const url = `${API_BASE}/coins/${id}/market_chart?vs_currency=usd&days=7&interval=hourly`;
-          const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900 });
+          const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
           const prices = data.prices || [];
 
           const labels = [];
@@ -1263,9 +1222,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color: "#e5e7eb", font: { size: 10 } } }
-          },
+          plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
           scales: {
             x: { ticks: { color: "#9ca3af", maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }, grid: { display: false } },
             y: { ticks: { color: "#9ca3af", callback: (v) => "$" + Number(v).toFixed(0) }, grid: { color: "rgba(55, 65, 81, 0.6)" } }
@@ -1275,36 +1232,14 @@
     }
 
     // ==========================================================
-    // AI PROVIDER LAYER
-    // ==========================================================
-   const AI_PROVIDER = {
-  mode: "real",
-  endpoints: { real: "/ai/predict" }
-};
-
-function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
-  const base = BACKEND_BASE_URL.replace(/\/$/, "");
-  const path = AI_PROVIDER.endpoints.real;
-
-  const qs = new URLSearchParams({
-    coin_id: coinId,
-    days: String(days),
-    timeframe: String(timeframe)
-  });
-
-  return `${base}${path}?${qs.toString()}`;
-}
-
-    // ==========================================================
     // BACKEND TESTS
     // ==========================================================
     async function testHealth() {
       const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/health`;
       aiResult.textContent = "Calling: " + url;
-
       btnHealth.disabled = true;
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0 });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0, mode: "cors" });
         aiResult.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
         aiResult.textContent = "Health error:\n" + String(err);
@@ -1315,17 +1250,14 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
 
     async function handleAiBackendTest() {
       const coinId = (aiInput.value || "bitcoin").trim();
-      if (!coinId) {
-        aiResult.textContent = "Please enter a CoinGecko coin id.";
-        return;
-      }
+      if (!coinId) { aiResult.textContent = "Please enter a CoinGecko coin id."; return; }
 
       const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
       aiResult.textContent = "Calling: " + url;
-
       btnTestBackend.disabled = true;
+
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0 });
+        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
 
         document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
         document.getElementById("ai-summary-last").textContent =
@@ -1337,9 +1269,7 @@ function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
 
         aiResult.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
-        aiResult.textContent =
-          "Error while calling backend:\n" + String(err) +
-          "\n\nNotes:\n- If CoinGecko is rate-limiting, wait and retry later\n- For Render sleeping: call /health first\n";
+        aiResult.textContent = "Error while calling backend:\n" + String(err);
       } finally {
         btnTestBackend.disabled = false;
       }
