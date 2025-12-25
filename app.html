@@ -271,7 +271,7 @@
     .scenario-block{margin-top:8px; font-size:11px}
     .scenario-block strong{color:#bfdbfe}
     .scenario-list{list-style:none; margin-top:6px}
-    .scenario-list li{margin-bottom:6px; line-height:1.4}
+    .scenario-list li{margin-bottom:8px; line-height:1.35}
 
     .chart-wrap{
       margin-top:10px;
@@ -352,7 +352,7 @@
         </div>
       </div>
       <div class="status-wrap">
-        <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
+        <div class="live-badge"><span class="dot"></span><span> toggle: real-time-ish market feed</span></div>
         <div class="updated-at" id="updatedAtText">Updated: —</div>
         <div class="source-badge" title="Data source status">
           <span id="sourceDot" class="source-dot warn"></span>
@@ -372,7 +372,7 @@
           <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
         </div>
         <p class="mini-note">
-          Markets load via Render backend proxy. If backend is down/sleeping, it falls back to CoinGecko direct.
+          Markets load via the Render backend proxy. If the backend is sleeping/down, the app falls back to CoinGecko directly.
         </p>
       </div>
 
@@ -380,13 +380,13 @@
         <div class="card-header" style="margin-bottom:6px;">
           <div>
             <div class="card-title">CryptoVision AI module</div>
-            <div class="card-subtitle">Per-coin prediction + probability scenarios.</div>
+            <div class="card-subtitle">Per-coin prediction + probabilistic scenarios.</div>
           </div>
           <span class="badge blue">Live</span>
         </div>
         <p style="margin-bottom:4px;">
           <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
-          then formats the output into “Most probable / Alternative / Rare” scenarios.
+          then formats the output into simple “Bullish/Bearish” probability scenarios.
         </p>
         <p class="mini-note">
           Educational / informational only. Not financial advice.
@@ -483,11 +483,11 @@
           </div>
 
           <div class="ai-comment" id="coinComment">
-            Select a coin to load AI prediction and probability scenarios.
+            Select a coin to load AI prediction and probabilistic scenarios.
           </div>
 
           <div class="scenario-block">
-            <strong>Auto scenarios:</strong>
+            <strong>Probabilistic scenarios:</strong>
             <ul class="scenario-list" id="scenarioList"><li>—</li></ul>
           </div>
 
@@ -512,7 +512,7 @@
       <div class="panel">
         <h2>Backend Test</h2>
         <p>
-          Health: <code>/health</code> • AI: <code>/ai/predict</code> (example: bitcoin, ethereum).
+          Health: <code>/health</code> • AI: <code>/ai/predict</code> (examples: bitcoin, ethereum).
         </p>
 
         <div class="row">
@@ -564,10 +564,8 @@
     const MARKETS_CACHE_TTL_MS = 60_000;
     const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
 
-    // AI endpoint (REAL)
+    // Endpoints
     const AI_ENDPOINT = "/ai/predict";
-
-    // Chart endpoint (preferred). We fallback to CoinGecko direct if backend doesn't have it or is down.
     const CHART_ENDPOINT = "/chart";
 
     // ==========================================================
@@ -627,9 +625,15 @@
       updatedAtText.textContent = "Updated: " + formatted;
     }
 
+    function safeNum(x) {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : null;
+    }
+
     function formatPrice(value) {
       if (value == null || Number.isNaN(value)) return "—";
       const v = Number(value);
+      if (!Number.isFinite(v)) return "—";
       if (v >= 1000) return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
       if (v >= 1) return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       if (v >= 0.01) return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
@@ -639,6 +643,7 @@
     function formatPercent(value) {
       if (value == null || Number.isNaN(value)) return "—";
       const v = Number(value);
+      if (!Number.isFinite(v)) return "—";
       const sign = v > 0 ? "+" : "";
       return sign + v.toFixed(2) + "%";
     }
@@ -646,6 +651,7 @@
     function formatNumberAbbr(value) {
       if (value == null || Number.isNaN(value)) return "—";
       const v = Number(value);
+      if (!Number.isFinite(v)) return "—";
       if (v >= 1e12) return (v / 1e12).toFixed(2) + " T";
       if (v >= 1e9)  return (v / 1e9).toFixed(2) + " B";
       if (v >= 1e6)  return (v / 1e6).toFixed(2) + " M";
@@ -684,11 +690,6 @@
       td.textContent = message;
       tr.appendChild(td);
       coinsBody.appendChild(tr);
-    }
-
-    function safeNum(x) {
-      const n = Number(x);
-      return Number.isFinite(n) ? n : null;
     }
 
     // ==========================================================
@@ -742,7 +743,7 @@
 
           if (!res.ok) {
             const text = await res.text().catch(() => "");
-            throw new Error(`HTTP ${res.status} ${res.statusText} ${text ? ("- " + text.slice(0, 220)) : ""}`);
+            throw new Error(`HTTP ${res.status} ${res.statusText}${text ? (" - " + text.slice(0, 220)) : ""}`);
           }
 
           return await res.json();
@@ -808,7 +809,6 @@
     }
 
     function buildCoinGeckoChartUrl({ coinId, vsCurrency = "usd", days = 7, interval = "hourly" }) {
-      // CoinGecko market_chart supports days and interval.
       return `${API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=${encodeURIComponent(vsCurrency)}&days=${encodeURIComponent(String(days))}&interval=${encodeURIComponent(String(interval))}`;
     }
 
@@ -877,8 +877,8 @@
           dailyInsightEl.textContent = "Loaded from cache due to upstream error.";
         } else {
           setSourceBadge("error", "Source: FAILED (backend + CoinGecko + no cache)");
-          showErrorInTable("Failed to load markets. Try again in 60s.");
-          dailyInsightEl.textContent = "Error loading data (rate-limit / backend / network).";
+          showErrorInTable("Failed to load markets. Please try again in 60s.");
+          dailyInsightEl.textContent = "Error loading data (rate limit / backend / network).";
         }
       } finally {
         isLoadingMarkets = false;
@@ -1019,7 +1019,7 @@
 
       dailyInsightEl.innerHTML = `
         <p>
-          Based on <strong>${count24}</strong> top coins by market cap, today’s overall market mood looks
+          Based on <strong>${count24}</strong> top coins by market cap, today’s market mood looks
           <strong>${mood}</strong>, with an average 24h change of <strong>${avg24.toFixed(2)}%</strong>.
         </p>
         <ul class="ai-list">
@@ -1032,126 +1032,62 @@
     }
 
     // ==========================================================
-    // AI: fetch + scenarios format (Most / Alt / Rare)
+    // AI
     // ==========================================================
     async function fetchAiPredictionForCoin(coinId) {
       const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
       return await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
     }
 
-    function computeProbabilisticScenarios({ last, predicted, low, high, rsi }) {
+    function computeProbabilisticScenarios({ last, predicted, low, high }) {
       const lastN = safeNum(last);
       const predN = safeNum(predicted);
-      const lowN = safeNum(low);
+      const lowN  = safeNum(low);
       const highN = safeNum(high);
 
-      // Defensive fallback (avoid NaN UI)
+      // Defensive fallback
       if (lastN == null || predN == null || lowN == null || highN == null) {
-        return {
-          most: { prob: 62, title: "📉 Scenariul CEL MAI PROBABIL", lines: ["➡️ Date insuficiente pentru scenarii."] },
-          alt:  { prob: 28, title: "🔄 Scenariul alternativ", lines: ["➡️ Încearcă din nou mai târziu."] },
-          rare: { prob: 10, title: "🟢 Scenariul mai rar", lines: ["➡️ AI indisponibil / date lipsă."] }
-        };
+        return [
+          { dir: "Bullish", prob: 62, from: lastN ?? 0, to: lastN ?? 0 },
+          { dir: "Bearish", prob: 28, from: lastN ?? 0, to: lastN ?? 0 },
+          { dir: "Bullish", prob: 10, from: lastN ?? 0, to: lastN ?? 0 }
+        ];
       }
 
-      // small buffers for "spike" and "acceptance"
-      const spikeBuffer = 0.003;   // 0.3%
-      const acceptBuffer = 0.006;  // 0.6%
-
-      // direction from AI
-      const delta = (predN - lastN) / Math.max(1e-9, lastN);
-      const isBull = delta > 0.002;   // > +0.2%
-      const isBear = delta < -0.002;  // < -0.2%
-
-      // confidence from interval width
       const width = (highN - lowN) / Math.max(1e-9, lastN);
       const tight = width < 0.04;
-      let mostProb = tight ? 65 : 62;
-      let altProb  = tight ? 25 : 28;
-      let rareProb = Math.max(5, 100 - mostProb - altProb);
+      const pMain = tight ? 65 : 62;
+      const pAlt  = tight ? 25 : 28;
+      const pRare = 100 - pMain - pAlt;
 
-      // slight RSI influence (keeps it “real”, but not rule-demo)
-      const rsiN = safeNum(rsi);
-      if (rsiN != null) {
-        if (rsiN < 35) { mostProb += 2; altProb -= 1; }   // rebound bias
-        if (rsiN > 65) { mostProb += 1; altProb -= 1; }   // exhaustion bias
-        // keep sane totals
-        mostProb = Math.min(70, Math.max(55, mostProb));
-        altProb = Math.min(35, Math.max(20, altProb));
-        rareProb = Math.max(5, 100 - mostProb - altProb);
-      }
+      const delta = (predN - lastN) / Math.max(1e-9, lastN);
+      const mainDir = delta >= 0 ? "Bullish" : "Bearish";
+      const altDir  = mainDir === "Bullish" ? "Bearish" : "Bullish";
+      const rareDir = mainDir;
 
-      if (isBear) {
-        const reaction = lastN;
-        const t1 = Math.max(lowN, predN);
-        const t2 = lowN;
-        const t3 = lowN * (1 - 0.01);
+      const mainTo = mainDir === "Bullish"
+        ? Math.min(highN, Math.max(predN, lastN))
+        : Math.max(lowN,  Math.min(predN, lastN));
 
-        const spikeHi = highN * (1 + spikeBuffer);
-        const acceptHi = highN * (1 + acceptBuffer);
+      const altTo  = altDir === "Bullish" ? highN : lowN;
+      const rareTo = rareDir === "Bullish" ? (highN * 1.006) : (lowN * 0.994);
 
-        return {
-          most: { prob: mostProb, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
-            `➡️ Reacție bearish din ${formatPrice(reaction)}`,
-            `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
-          ]},
-          alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
-            `➡️ Spike scurt peste ${formatPrice(highN)} – ${formatPrice(spikeHi)}`
-          ]},
-          rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
-            `➡️ Acceptare peste ${formatPrice(acceptHi)}`
-          ]}
-        };
-      }
-
-      if (isBull) {
-        const reaction = lastN;
-        const t1 = Math.min(highN, predN);
-        const t2 = highN;
-        const t3 = highN * (1 + 0.01);
-
-        const spikeLo = lowN * (1 - spikeBuffer);
-        const acceptLo = lowN * (1 - acceptBuffer);
-
-        return {
-          most: { prob: mostProb, title: "📈 Scenariul CEL MAI PROBABIL", lines: [
-            `➡️ Reacție bullish din ${formatPrice(reaction)}`,
-            `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
-          ]},
-          alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
-            `➡️ Spike scurt sub ${formatPrice(lowN)} – ${formatPrice(spikeLo)}`
-          ]},
-          rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
-            `➡️ Acceptare sub ${formatPrice(acceptLo)}`
-          ]}
-        };
-      }
-
-      // neutral
-      return {
-        most: { prob: mostProb, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
-          `➡️ Range / consolidare în jurul ${formatPrice(lastN)}`,
-          `${formatPrice(lowN)} ↔ ${formatPrice(highN)}`
-        ]},
-        alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
-          `➡️ Spike scurt către ${formatPrice(highN * (1 + spikeBuffer))} sau ${formatPrice(lowN * (1 - spikeBuffer))}`
-        ]},
-        rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
-          `➡️ Acceptare în afara intervalului (${formatPrice(highN * (1 + acceptBuffer))} / ${formatPrice(lowN * (1 - acceptBuffer))})`
-        ]}
-      };
+      return [
+        { dir: mainDir, prob: pMain, from: lastN, to: mainTo },
+        { dir: altDir,  prob: pAlt,  from: lastN, to: altTo  },
+        { dir: rareDir, prob: pRare, from: lastN, to: rareTo }
+      ];
     }
 
     function renderProbabilisticScenarioList(scenarios) {
       scenarioListEl.innerHTML = "";
-      const blocks = [scenarios.most, scenarios.alt, scenarios.rare];
 
-      for (const b of blocks) {
+      for (const s of scenarios) {
         const li = document.createElement("li");
         li.innerHTML = `
-          <div><strong>${b.title} (≈${b.prob}%)</strong></div>
-          <div style="margin-top:4px;">
-            ${b.lines.map(line => `<div>${line}</div>`).join("")}
+          <div><strong>${s.dir} (${s.prob}%)</strong></div>
+          <div style="opacity:.9; margin-top:3px;">
+            from <strong>${formatPrice(s.from)}</strong> → <strong>${formatPrice(s.to)}</strong>
           </div>
         `;
         scenarioListEl.appendChild(li);
@@ -1208,23 +1144,23 @@
         const high = safeNum(ai?.prediction_interval_68?.high);
         const rsi = safeNum(ai?.indicators?.rsi);
 
-        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high, rsi });
+        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
         renderProbabilisticScenarioList(scenarios);
 
         const model = ai?.model || "ai";
         metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
 
-        if (last != null && predicted != null && low != null && high != null) {
+        if (predicted != null && low != null && high != null) {
           coinCommentEl.textContent =
-            `Predicție: ${formatPrice(predicted)} (interval 68%: ${formatPrice(low)} – ${formatPrice(high)}).`;
+            `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
         } else {
-          coinCommentEl.textContent = "Predicția a venit, dar lipsește câmpuri (verifică backend).";
+          coinCommentEl.textContent = "Prediction returned, but some fields are missing (check backend response).";
         }
 
       } catch (e) {
         metricBiasEl.textContent = "AI unavailable";
-        coinCommentEl.textContent = "AI endpoint failed. Try again later.";
-        scenarioListEl.innerHTML = "<li>AI indisponibil momentan.</li>";
+        coinCommentEl.textContent = "AI endpoint failed. Please try again later.";
+        scenarioListEl.innerHTML = "<li>AI is temporarily unavailable.</li>";
         console.error("[AI] failed:", e);
       }
     }
@@ -1255,7 +1191,8 @@
         chartCache.set(id, chartData);
       }
 
-      const ctx = document.getElementById("priceChart").getContext("2d");
+      const canvas = document.getElementById("priceChart");
+      const ctx = canvas.getContext("2d");
       if (priceChart) priceChart.destroy();
 
       priceChart = new Chart(ctx, {
@@ -1285,15 +1222,14 @@
     function normalizeChartPrices(prices) {
       const labels = [];
       const values = [];
+      const step = Math.max(1, Math.floor(prices.length / 80)); // downsample
 
-      // downsample to keep UI fast
-      const step = Math.max(1, Math.floor(prices.length / 80));
       for (let i = 0; i < prices.length; i += step) {
         const row = prices[i];
         if (!Array.isArray(row) || row.length < 2) continue;
+
         const ts = row[0];
-        const p = row[1];
-        const pn = safeNum(p);
+        const pn = safeNum(row[1]);
         if (pn == null) continue;
 
         const d = new Date(ts);
@@ -1303,7 +1239,6 @@
         );
         values.push(pn);
       }
-
       return { labels, values };
     }
 
@@ -1363,7 +1298,7 @@
 
       if (elapsed < REFRESH_MIN_INTERVAL_MS) {
         const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - elapsed) / 1000);
-        alert(`Te rog așteaptă ${remaining}s înainte de un nou refresh (protecție rate-limit).`);
+        alert(`Please wait ${remaining}s before refreshing again (rate-limit protection).`);
         return;
       }
 
