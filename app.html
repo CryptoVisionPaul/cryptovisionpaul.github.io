@@ -1079,42 +1079,119 @@
       await loadChartForCoin(coin);
     }
 
-    function computeBias(coin) {
-      const ch24 = coin.price_change_percentage_24h ?? 0;
-      const ch7 = coin.price_change_percentage_7d_in_currency ?? 0;
-      const price = coin.current_price ?? 0;
+   function computeProbabilisticScenarios({ last, predicted, low, high, rsi }) {
+  // Buffere mici ca să avem „spike” și „acceptare”
+  const spikeBuffer = 0.003;     // 0.3%
+  const acceptBuffer = 0.006;    // 0.6%
 
-      const support = price * 0.97;
-      const resistance = price * 1.03;
+  // Direcția principală (AI)
+  const delta = (predicted - last) / Math.max(1e-9, last);
+  const isBull = delta > 0.002;      // > +0.2%
+  const isBear = delta < -0.002;     // < -0.2%
 
-      let bias = "Neutral";
-      let prob = 50;
-      let comment = "";
+  // Ajustare probabilități în funcție de “confidence”
+  // Dacă intervalul e strâns (high-low mic), creștem “most probable”.
+  const width = (high - low) / Math.max(1e-9, last);
+  const tight = width < 0.04; // <4% e destul de tight pentru crypto daily
+  const mostProb = tight ? 65 : 62;
+  const altProb = tight ? 25 : 28;
+  const rareProb = 100 - mostProb - altProb; // rămâne ~10
 
-      if (ch24 > 4 && ch7 > 10) {
-        bias = "Strong bullish";
-        prob = 70;
-        comment = `${coin.name} shows strong momentum (24h and 7d aligned). Watch support near ${formatPrice(support)}.`;
-      } else if (ch24 > 1 && ch7 >= 0) {
-        bias = "Moderate bullish";
-        prob = 60;
-        comment = `${coin.name} is trending positive. Support near ${formatPrice(support)}; resistance near ${formatPrice(resistance)}.`;
-      } else if (ch24 < -4 && ch7 < -8) {
-        bias = "Strong bearish";
-        prob = 72;
-        comment = `${coin.name} is under strong selling pressure. Below support (${formatPrice(support)}) risk increases.`;
-      } else if (ch24 < -1 && ch7 <= 0) {
-        bias = "Moderate bearish";
-        prob = 60;
-        comment = `${coin.name} shows short-term weakness. If it fails to reclaim ${formatPrice(resistance)}, downside remains open.`;
-      } else {
-        bias = "Neutral / consolidation";
-        prob = 50;
-        comment = `${coin.name} is in a balance zone. Watch reactions near support (${formatPrice(support)}) and resistance (${formatPrice(resistance)}).`;
+  // Construim nivelele:
+  // - Most probable: spre predicted + zona bandă relevantă
+  // - Alternativ: spike spre banda opusă
+  // - Rar: acceptare peste confirmare (high+buffer) / sub (low-buffer)
+
+  // Dacă AI e bearish: focus pe scădere spre low/în interiorul intervalului
+  if (isBear) {
+    const reaction = last; // “Reacție bearish din X”
+    const target1 = Math.max(low, predicted);       // primul target
+    const target2 = low;                            // extensie
+    const target3 = low * (1 - 0.01);               // ușor sub low
+
+    const spike = high * (1 + spikeBuffer);         // spike scurt peste high
+    const accept = high * (1 + acceptBuffer);       // acceptare peste confirmare
+
+    return {
+      most: {
+        prob: mostProb,
+        lines: [
+          `➡️ Reacție bearish din ${formatPrice(reaction)}`,
+          `${formatPrice(target1)} → ${formatPrice(target2)} → ${formatPrice(target3)}`
+        ]
+      },
+      alt: {
+        prob: altProb,
+        lines: [
+          `➡️ Spike scurt peste ${formatPrice(high)} – ${formatPrice(spike)}`
+        ]
+      },
+      rare: {
+        prob: rareProb,
+        lines: [
+          `➡️ Acceptare peste ${formatPrice(accept)}`
+        ]
       }
+    };
+  }
 
-      return { label: `${bias} (${prob}% tilt)`, comment, support, resistance };
+  // Dacă AI e bullish: invers
+  if (isBull) {
+    const reaction = last;
+    const target1 = Math.min(high, predicted);
+    const target2 = high;
+    const target3 = high * (1 + 0.01);
+
+    const spikeDown = low * (1 - spikeBuffer);
+    const accept = low * (1 - acceptBuffer);
+
+    return {
+      most: {
+        prob: mostProb,
+        lines: [
+          `➡️ Reacție bullish din ${formatPrice(reaction)}`,
+          `${formatPrice(target1)} → ${formatPrice(target2)} → ${formatPrice(target3)}`
+        ]
+      },
+      alt: {
+        prob: altProb,
+        lines: [
+          `➡️ Spike scurt sub ${formatPrice(low)} – ${formatPrice(spikeDown)}`
+        ]
+      },
+      rare: {
+        prob: rareProb,
+        lines: [
+          `➡️ Acceptare sub ${formatPrice(accept)}`
+        ]
+      }
+    };
+  }
+
+  // Neutral: range logic
+  return {
+    most: {
+      prob: 62,
+      lines: [
+        `➡️ Range / consolidare în jurul ${formatPrice(last)}`,
+        `${formatPrice(low)} ↔ ${formatPrice(high)}`
+      ]
+    },
+    alt: {
+      prob: 28,
+      lines: [
+        `➡️ Spike scurt către ${formatPrice(high * (1 + spikeBuffer))} sau ${formatPrice(low * (1 - spikeBuffer))}`
+      ]
+    },
+    rare: {
+      prob: 10,
+      lines: [
+        `➡️ Acceptare în afara intervalului (${formatPrice(high * (1 + acceptBuffer))} / ${formatPrice(low * (1 - acceptBuffer))})`
+      ]
     }
+  };
+}
+
 
     function renderScenarios(biasInfo) {
       const sup = biasInfo.support;
