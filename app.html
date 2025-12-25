@@ -567,6 +567,9 @@
     // AI endpoint (REAL)
     const AI_ENDPOINT = "/ai/predict";
 
+    // Chart endpoint (preferred). We fallback to CoinGecko direct if backend doesn't have it or is down.
+    const CHART_ENDPOINT = "/chart";
+
     // ==========================================================
     // DOM
     // ==========================================================
@@ -683,6 +686,11 @@
       coinsBody.appendChild(tr);
     }
 
+    function safeNum(x) {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : null;
+    }
+
     // ==========================================================
     // CACHE (markets)
     // ==========================================================
@@ -786,6 +794,22 @@
         timeframe: String(timeframe)
       });
       return `${base}${AI_ENDPOINT}?${qs.toString()}`;
+    }
+
+    function buildBackendChartUrl({ coinId, vsCurrency = "usd", days = 7, interval = "hourly" }) {
+      const base = BACKEND_BASE_URL.replace(/\/$/, "");
+      const qs = new URLSearchParams({
+        coin_id: coinId,
+        vs_currency: vsCurrency,
+        days: String(days),
+        interval: String(interval)
+      });
+      return `${base}${CHART_ENDPOINT}?${qs.toString()}`;
+    }
+
+    function buildCoinGeckoChartUrl({ coinId, vsCurrency = "usd", days = 7, interval = "hourly" }) {
+      // CoinGecko market_chart supports days and interval.
+      return `${API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=${encodeURIComponent(vsCurrency)}&days=${encodeURIComponent(String(days))}&interval=${encodeURIComponent(String(interval))}`;
     }
 
     // ==========================================================
@@ -1012,34 +1036,59 @@
     // ==========================================================
     async function fetchAiPredictionForCoin(coinId) {
       const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
-      return await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0 });
+      return await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
     }
 
-    function computeProbabilisticScenarios({ last, predicted, low, high }) {
+    function computeProbabilisticScenarios({ last, predicted, low, high, rsi }) {
+      const lastN = safeNum(last);
+      const predN = safeNum(predicted);
+      const lowN = safeNum(low);
+      const highN = safeNum(high);
+
+      // Defensive fallback (avoid NaN UI)
+      if (lastN == null || predN == null || lowN == null || highN == null) {
+        return {
+          most: { prob: 62, title: "📉 Scenariul CEL MAI PROBABIL", lines: ["➡️ Date insuficiente pentru scenarii."] },
+          alt:  { prob: 28, title: "🔄 Scenariul alternativ", lines: ["➡️ Încearcă din nou mai târziu."] },
+          rare: { prob: 10, title: "🟢 Scenariul mai rar", lines: ["➡️ AI indisponibil / date lipsă."] }
+        };
+      }
+
       // small buffers for "spike" and "acceptance"
       const spikeBuffer = 0.003;   // 0.3%
       const acceptBuffer = 0.006;  // 0.6%
 
       // direction from AI
-      const delta = (predicted - last) / Math.max(1e-9, last);
+      const delta = (predN - lastN) / Math.max(1e-9, lastN);
       const isBull = delta > 0.002;   // > +0.2%
       const isBear = delta < -0.002;  // < -0.2%
 
       // confidence from interval width
-      const width = (high - low) / Math.max(1e-9, last);
-      const tight = width < 0.04; // <4% interval ~ "tighter"
-      const mostProb = tight ? 65 : 62;
-      const altProb  = tight ? 25 : 28;
-      const rareProb = Math.max(5, 100 - mostProb - altProb);
+      const width = (highN - lowN) / Math.max(1e-9, lastN);
+      const tight = width < 0.04;
+      let mostProb = tight ? 65 : 62;
+      let altProb  = tight ? 25 : 28;
+      let rareProb = Math.max(5, 100 - mostProb - altProb);
+
+      // slight RSI influence (keeps it “real”, but not rule-demo)
+      const rsiN = safeNum(rsi);
+      if (rsiN != null) {
+        if (rsiN < 35) { mostProb += 2; altProb -= 1; }   // rebound bias
+        if (rsiN > 65) { mostProb += 1; altProb -= 1; }   // exhaustion bias
+        // keep sane totals
+        mostProb = Math.min(70, Math.max(55, mostProb));
+        altProb = Math.min(35, Math.max(20, altProb));
+        rareProb = Math.max(5, 100 - mostProb - altProb);
+      }
 
       if (isBear) {
-        const reaction = last;
-        const t1 = Math.max(low, predicted);
-        const t2 = low;
-        const t3 = low * (1 - 0.01);
+        const reaction = lastN;
+        const t1 = Math.max(lowN, predN);
+        const t2 = lowN;
+        const t3 = lowN * (1 - 0.01);
 
-        const spikeHi = high * (1 + spikeBuffer);
-        const acceptHi = high * (1 + acceptBuffer);
+        const spikeHi = highN * (1 + spikeBuffer);
+        const acceptHi = highN * (1 + acceptBuffer);
 
         return {
           most: { prob: mostProb, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
@@ -1047,7 +1096,7 @@
             `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
           ]},
           alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
-            `➡️ Spike scurt peste ${formatPrice(high)} – ${formatPrice(spikeHi)}`
+            `➡️ Spike scurt peste ${formatPrice(highN)} – ${formatPrice(spikeHi)}`
           ]},
           rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
             `➡️ Acceptare peste ${formatPrice(acceptHi)}`
@@ -1056,13 +1105,13 @@
       }
 
       if (isBull) {
-        const reaction = last;
-        const t1 = Math.min(high, predicted);
-        const t2 = high;
-        const t3 = high * (1 + 0.01);
+        const reaction = lastN;
+        const t1 = Math.min(highN, predN);
+        const t2 = highN;
+        const t3 = highN * (1 + 0.01);
 
-        const spikeLo = low * (1 - spikeBuffer);
-        const acceptLo = low * (1 - acceptBuffer);
+        const spikeLo = lowN * (1 - spikeBuffer);
+        const acceptLo = lowN * (1 - acceptBuffer);
 
         return {
           most: { prob: mostProb, title: "📈 Scenariul CEL MAI PROBABIL", lines: [
@@ -1070,7 +1119,7 @@
             `${formatPrice(t1)} → ${formatPrice(t2)} → ${formatPrice(t3)}`
           ]},
           alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
-            `➡️ Spike scurt sub ${formatPrice(low)} – ${formatPrice(spikeLo)}`
+            `➡️ Spike scurt sub ${formatPrice(lowN)} – ${formatPrice(spikeLo)}`
           ]},
           rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
             `➡️ Acceptare sub ${formatPrice(acceptLo)}`
@@ -1080,28 +1129,28 @@
 
       // neutral
       return {
-        most: { prob: 62, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
-          `➡️ Range / consolidare în jurul ${formatPrice(last)}`,
-          `${formatPrice(low)} ↔ ${formatPrice(high)}`
+        most: { prob: mostProb, title: "📉 Scenariul CEL MAI PROBABIL", lines: [
+          `➡️ Range / consolidare în jurul ${formatPrice(lastN)}`,
+          `${formatPrice(lowN)} ↔ ${formatPrice(highN)}`
         ]},
-        alt: { prob: 28, title: "🔄 Scenariul alternativ", lines: [
-          `➡️ Spike scurt către ${formatPrice(high * (1 + spikeBuffer))} sau ${formatPrice(low * (1 - spikeBuffer))}`
+        alt: { prob: altProb, title: "🔄 Scenariul alternativ", lines: [
+          `➡️ Spike scurt către ${formatPrice(highN * (1 + spikeBuffer))} sau ${formatPrice(lowN * (1 - spikeBuffer))}`
         ]},
-        rare:{ prob: 10, title: "🟢 Scenariul mai rar", lines: [
-          `➡️ Acceptare în afara intervalului (${formatPrice(high * (1 + acceptBuffer))} / ${formatPrice(low * (1 - acceptBuffer))})`
+        rare:{ prob: rareProb, title: "🟢 Scenariul mai rar", lines: [
+          `➡️ Acceptare în afara intervalului (${formatPrice(highN * (1 + acceptBuffer))} / ${formatPrice(lowN * (1 - acceptBuffer))})`
         ]}
       };
     }
 
     function renderProbabilisticScenarioList(scenarios) {
       scenarioListEl.innerHTML = "";
-
       const blocks = [scenarios.most, scenarios.alt, scenarios.rare];
+
       for (const b of blocks) {
         const li = document.createElement("li");
         li.innerHTML = `
           <div><strong>${b.title} (≈${b.prob}%)</strong></div>
-          <div style="margin-top:2px;">
+          <div style="margin-top:4px;">
             ${b.lines.map(line => `<div>${line}</div>`).join("")}
           </div>
         `;
@@ -1138,8 +1187,12 @@
       pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
       selectedPillsEl.appendChild(pill7d);
 
-      // Chart (still CoinGecko direct)
-      await loadChartForCoin(coin);
+      // Chart (prefer backend; fallback to CoinGecko direct)
+      try {
+        await loadChartForCoin(coin);
+      } catch (e) {
+        console.warn("[Chart] skipped:", e);
+      }
 
       // AI prediction + scenarios
       metricBiasEl.textContent = "Loading AI…";
@@ -1149,20 +1202,24 @@
       try {
         const ai = await fetchAiPredictionForCoin(coin.id);
 
-        const last = Number(ai.last_price);
-        const predicted = Number(ai.predicted_price);
-        const low = Number(ai.prediction_interval_68?.low);
-        const high = Number(ai.prediction_interval_68?.high);
-        const rsi = Number(ai.indicators?.rsi);
+        const last = safeNum(ai?.last_price);
+        const predicted = safeNum(ai?.predicted_price);
+        const low = safeNum(ai?.prediction_interval_68?.low);
+        const high = safeNum(ai?.prediction_interval_68?.high);
+        const rsi = safeNum(ai?.indicators?.rsi);
 
-        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
+        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high, rsi });
         renderProbabilisticScenarioList(scenarios);
 
-        const model = ai.model || "ai";
-        metricBiasEl.textContent = `${model} • RSI ${Number.isFinite(rsi) ? rsi.toFixed(2) : "—"}`;
+        const model = ai?.model || "ai";
+        metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
 
-        coinCommentEl.textContent =
-          `Predicție: ${formatPrice(predicted)} (interval 68%: ${formatPrice(low)} – ${formatPrice(high)}).`;
+        if (last != null && predicted != null && low != null && high != null) {
+          coinCommentEl.textContent =
+            `Predicție: ${formatPrice(predicted)} (interval 68%: ${formatPrice(low)} – ${formatPrice(high)}).`;
+        } else {
+          coinCommentEl.textContent = "Predicția a venit, dar lipsește câmpuri (verifică backend).";
+        }
 
       } catch (e) {
         metricBiasEl.textContent = "AI unavailable";
@@ -1177,32 +1234,25 @@
       let chartData = chartCache.get(id);
 
       if (!chartData) {
+        // 1) Try backend /chart
         try {
-          const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/chart?coin_id=${encodeURIComponent(id)}&vs_currency=usd&days=7&interval=hourly`;
+          const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 7, interval: "hourly" });
+          const data = await fetchJsonWithRetry(backendUrl, { timeoutMs: 15000, retries: 0, retryDelayMs: 900, mode: "cors" });
+          const prices = Array.isArray(data?.prices) ? data.prices : [];
+          if (!prices.length) throw new Error("Backend chart returned empty prices.");
+          chartData = normalizeChartPrices(prices);
+        } catch (errBackendChart) {
+          console.warn("[Chart] backend failed, fallback to CoinGecko direct.", errBackendChart);
 
-          const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
-          const prices = data.prices || [];
-
-          const labels = [];
-          const values = [];
-
-          const step = Math.max(1, Math.floor(prices.length / 80));
-          for (let i = 0; i < prices.length; i += step) {
-            const [ts, p] = prices[i];
-            const d = new Date(ts);
-            labels.push(
-              d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " +
-              d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-            );
-            values.push(p);
-          }
-
-          chartData = { labels, values };
-          chartCache.set(id, chartData);
-        } catch (err) {
-          console.error("[Chart] failed:", err);
-          return;
+          // 2) Fallback CoinGecko direct
+          const cgUrl = buildCoinGeckoChartUrl({ coinId: id, vsCurrency: "usd", days: 7, interval: "hourly" });
+          const data2 = await fetchJsonWithRetry(cgUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
+          const prices2 = Array.isArray(data2?.prices) ? data2.prices : [];
+          if (!prices2.length) throw new Error("CoinGecko chart returned empty prices.");
+          chartData = normalizeChartPrices(prices2);
         }
+
+        chartCache.set(id, chartData);
       }
 
       const ctx = document.getElementById("priceChart").getContext("2d");
@@ -1230,6 +1280,31 @@
           }
         }
       });
+    }
+
+    function normalizeChartPrices(prices) {
+      const labels = [];
+      const values = [];
+
+      // downsample to keep UI fast
+      const step = Math.max(1, Math.floor(prices.length / 80));
+      for (let i = 0; i < prices.length; i += step) {
+        const row = prices[i];
+        if (!Array.isArray(row) || row.length < 2) continue;
+        const ts = row[0];
+        const p = row[1];
+        const pn = safeNum(p);
+        if (pn == null) continue;
+
+        const d = new Date(ts);
+        labels.push(
+          d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " +
+          d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        );
+        values.push(pn);
+      }
+
+      return { labels, values };
     }
 
     // ==========================================================
