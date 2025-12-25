@@ -1178,7 +1178,8 @@
 
       if (!chartData) {
         try {
-          const url = `${API_BASE}/coins/${id}/market_chart?vs_currency=usd&days=7&interval=hourly`;
+          const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/chart?coin_id=${encodeURIComponent(id)}&vs_currency=usd&days=7&interval=hourly`;
+
           const data = await fetchJsonWithRetry(url, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
           const prices = data.prices || [];
 
