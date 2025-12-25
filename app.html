@@ -1205,13 +1205,18 @@
   endpoints: { real: "/ai/predict" }
 };
 
+function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
+  const base = BACKEND_BASE_URL.replace(/\/$/, "");
+  const path = AI_PROVIDER.endpoints.real;
 
-    function buildAiUrl({ coinId, days = 90, timeframe = "1d" }) {
-      const base = BACKEND_BASE_URL.replace(/\/$/, "");
-      const path = (AI_PROVIDER.mode === "real") ? AI_PROVIDER.endpoints.real : AI_PROVIDER.endpoints.demo;
-      const qs = new URLSearchParams({ coin_id: coinId, days: String(days), timeframe: String(timeframe) });
-      return `${base}${path}?${qs.toString()}`;
-    }
+  const qs = new URLSearchParams({
+    coin_id: coinId,
+    days: String(days),
+    timeframe: String(timeframe)
+  });
+
+  return `${base}${path}?${qs.toString()}`;
+}
 
     // ==========================================================
     // BACKEND TESTS
