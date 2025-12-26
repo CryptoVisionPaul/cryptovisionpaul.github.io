@@ -1094,19 +1094,21 @@
 }
 
     function renderProbabilisticScenarioList(scenarios) {
-      scenarioListEl.innerHTML = "";
+  scenarioListEl.innerHTML = "";
 
-      for (const s of scenarios) {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <div><strong>${s.dir} (${s.prob}%)</strong></div>
-          <div style="opacity:.9; margin-top:3px;">
-            from <strong>${formatPrice(s.from)}</strong> → <strong>${formatPrice(s.to)}</strong>
-          </div>
-        `;
-        scenarioListEl.appendChild(li);
-      }
-    }
+  // scenarios = [{label, prob, from, to}, ...]
+  for (const s of scenarios) {
+    const li = document.createElement("li");
+
+    const fromTxt = (s.from == null) ? "—" : formatPrice(s.from);
+    const toTxt   = (s.to == null) ? "—" : formatPrice(s.to);
+    const probTxt = Number.isFinite(Number(s.prob)) ? Number(s.prob).toFixed(0) : "—";
+
+    li.innerHTML = `<div><strong>${s.label} (${probTxt}%) from ${fromTxt} → ${toTxt}</strong></div>`;
+    scenarioListEl.appendChild(li);
+  }
+}
+
 
     // ==========================================================
     // SELECT COIN + CHART + AI
