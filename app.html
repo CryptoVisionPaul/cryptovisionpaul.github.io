@@ -190,6 +190,16 @@
       background:linear-gradient(to right,#2563eb,#22c55e);
       border-color:transparent; color:#ecfeff; font-weight:500;
     }
+    .btn-small.secondary{
+      background:rgba(15,23,42,.92);
+      border:1px solid rgba(96,165,250,.6);
+      color:#bfdbfe;
+    }
+    .btn-small.danger{
+      background:rgba(248,113,113,.12);
+      border:1px solid rgba(248,113,113,.65);
+      color:#fecaca;
+    }
     .btn-small[disabled]{opacity:.55; cursor:not-allowed; filter:none;}
 
     .table-wrap{
@@ -330,6 +340,21 @@
       white-space:pre-wrap;
     }
 
+    .controls-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin:8px 0 10px;
+    }
+    .controls-row .select-small{color:#e5e7eb}
+    .hint{
+      font-size:11px;
+      color:var(--text-soft);
+      margin-top:6px;
+      line-height:1.4;
+    }
+
     @media (max-width: 900px){
       body{padding:12px 6px}
       .shell{border-radius:20px; padding:14px}
@@ -352,8 +377,7 @@
         </div>
       </div>
       <div class="status-wrap">
-        <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span>
-</div>
+        <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
         <div class="updated-at" id="updatedAtText">Updated: —</div>
         <div class="source-badge" title="Data source status">
           <span id="sourceDot" class="source-dot warn"></span>
@@ -367,7 +391,7 @@
         <div class="pill-row">
           <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
           <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
-          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Per-coin AI scenarios</span></div>
+          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Worldwide scenario format</span></div>
           <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
           <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">AdSense / affiliate area</span></div>
           <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
@@ -387,7 +411,7 @@
         </div>
         <p style="margin-bottom:4px;">
           <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
-          then formats the output into simple “Bullish/Bearish” probability scenarios.
+          then formats the output into simple “Bullish / Bearish” probability scenarios.
         </p>
         <p class="mini-note">
           Educational / informational only. Not financial advice.
@@ -470,6 +494,27 @@
             <span class="pill-info">Waiting for a selection...</span>
           </div>
 
+          <!-- AI Controls -->
+          <div class="controls-row">
+            <select id="tfSelect" class="select-small" title="AI timeframe">
+              <option value="30m">TF: 30m</option>
+              <option value="1h">TF: 1h</option>
+              <option value="4h">TF: 4h</option>
+              <option value="1d" selected>TF: 1d</option>
+            </select>
+            <select id="daysSelect" class="select-small" title="History window used by AI">
+              <option value="30">History: 30d</option>
+              <option value="90" selected>History: 90d</option>
+              <option value="180">History: 180d</option>
+              <option value="365">History: 365d</option>
+            </select>
+            <button id="btnRetryAi" class="btn-small secondary" disabled>Retry AI</button>
+            <button id="btnClearCache" class="btn-small danger" title="Clears local cache (markets + charts)">Clear cache</button>
+          </div>
+          <div class="hint" id="aiHint">
+            Tip: if AI is rate-limited, the app will show a clear retry countdown. Scenarios stay in English for worldwide use.
+          </div>
+
           <div class="metric-grid">
             <div class="metric-item">
               <div class="metric-label">Market Cap</div>
@@ -493,7 +538,7 @@
           </div>
 
           <div class="chart-wrap">
-            <div class="small-label" style="margin-bottom:4px;">Chart – last 7 days (USD)</div>
+            <div class="small-label" style="margin-bottom:4px;">Chart – last 30 days (USD)</div>
             <canvas id="priceChart"></canvas>
           </div>
 
@@ -569,6 +614,9 @@
     const AI_ENDPOINT = "/ai/predict";
     const CHART_ENDPOINT = "/chart";
 
+    // Storage keys
+    const STORAGE_KEY_PREFS = "cv_prefs_v1";
+
     // ==========================================================
     // DOM
     // ==========================================================
@@ -596,6 +644,12 @@
     const btnTestBackend = document.getElementById("btnTestBackend");
     const btnHealth = document.getElementById("btnHealth");
 
+    const tfSelect = document.getElementById("tfSelect");
+    const daysSelect = document.getElementById("daysSelect");
+    const btnRetryAi = document.getElementById("btnRetryAi");
+    const btnClearCache = document.getElementById("btnClearCache");
+    const aiHint = document.getElementById("aiHint");
+
     // ==========================================================
     // STATE
     // ==========================================================
@@ -603,7 +657,7 @@
     let filteredCoins = [];
     let currentSort = "rank";
     let priceChart = null;
-    const chartCache = new Map();
+    const chartCache = new Map(); // key: coinId -> {labels, values}
 
     const DataSource = {
       BACKEND: "backend-proxy",
@@ -613,6 +667,11 @@
 
     let isLoadingMarkets = false;
     let lastManualRefreshTs = 0;
+
+    // Selected coin state
+    let selectedCoinId = null;
+    let aiRetryTimer = null;
+    let aiRetryRemainingSec = 0;
 
     // ==========================================================
     // UTIL
@@ -694,6 +753,29 @@
     }
 
     // ==========================================================
+    // PREFS
+    // ==========================================================
+    function loadPrefs() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_PREFS);
+        if (!raw) return { tf: "1d", days: 90 };
+        const p = JSON.parse(raw);
+        return {
+          tf: (p && typeof p.tf === "string") ? p.tf : "1d",
+          days: (p && Number.isFinite(Number(p.days))) ? Number(p.days) : 90
+        };
+      } catch {
+        return { tf: "1d", days: 90 };
+      }
+    }
+
+    function savePrefs(tf, days) {
+      try {
+        localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify({ tf, days }));
+      } catch {}
+    }
+
+    // ==========================================================
     // CACHE (markets)
     // ==========================================================
     function loadMarketsCache() {
@@ -718,14 +800,22 @@
       return (Date.now() - ts) <= MARKETS_CACHE_TTL_MS;
     }
 
+    function clearAllCaches() {
+      try { localStorage.removeItem(STORAGE_KEY_MARKETS); } catch {}
+      chartCache.clear();
+      coinCommentEl.textContent = "Cache cleared. Select a coin again.";
+      scenarioListEl.innerHTML = "<li>—</li>";
+      if (priceChart) { priceChart.destroy(); priceChart = null; }
+    }
+
     // ==========================================================
-    // NET: robust fetch (timeout + retries)
+    // NET: fetch with status + headers (for 429 handling)
     // ==========================================================
-    async function fetchJsonWithRetry(url, {
-      timeoutMs = 12000,
-      retries = 1,
-      retryDelayMs = 900,
-      mode = "cors"
+    async function fetchJsonDetailed(url, {
+      timeoutMs = 15000,
+      mode = "cors",
+      retries = 0,
+      retryDelayMs = 900
     } = {}) {
       let lastErr = null;
 
@@ -742,12 +832,28 @@
             headers: { "Accept": "application/json" }
           });
 
-          if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`HTTP ${res.status} ${res.statusText}${text ? (" - " + text.slice(0, 220)) : ""}`);
+          const contentType = (res.headers.get("content-type") || "").toLowerCase();
+          const isJson = contentType.includes("application/json");
+          let body = null;
+          let text = "";
+
+          if (isJson) {
+            body = await res.json().catch(() => null);
+          } else {
+            text = await res.text().catch(() => "");
           }
 
-          return await res.json();
+          if (!res.ok) {
+            // include json error if present
+            const msg = isJson ? JSON.stringify(body).slice(0, 260) : (text || "").slice(0, 260);
+            const err = new Error(`HTTP ${res.status} ${res.statusText}${msg ? (" - " + msg) : ""}`);
+            err.status = res.status;
+            err.headers = res.headers;
+            err.body = body;
+            throw err;
+          }
+
+          return { ok: true, status: res.status, headers: res.headers, data: body };
         } catch (err) {
           lastErr = err;
           if (attempt === retries) break;
@@ -757,6 +863,7 @@
           clearTimeout(timer);
         }
       }
+
       throw lastErr;
     }
 
@@ -798,7 +905,8 @@
       return `${base}${AI_ENDPOINT}?${qs.toString()}`;
     }
 
-    function buildBackendChartUrl({ coinId, vsCurrency = "usd", days = 7, interval = "hourly" }) {
+    function buildBackendChartUrl({ coinId, vsCurrency = "usd", days = 30, interval = "daily" }) {
+      // IMPORTANT: use daily to avoid CoinGecko enterprise-only "hourly" limitations.
       const base = BACKEND_BASE_URL.replace(/\/$/, "");
       const qs = new URLSearchParams({
         coin_id: coinId,
@@ -809,12 +917,8 @@
       return `${base}${CHART_ENDPOINT}?${qs.toString()}`;
     }
 
-    function buildCoinGeckoChartUrl({ coinId, vsCurrency = "usd", days = 7, interval = "hourly" }) {
-      return `${API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=${encodeURIComponent(vsCurrency)}&days=${encodeURIComponent(String(days))}&interval=${encodeURIComponent(String(interval))}`;
-    }
-
     // ==========================================================
-    // MAIN: markets loader
+    // MAIN: markets loader (keeps CoinGecko fallback)
     // ==========================================================
     async function loadMarkets({ reason = "auto" } = {}) {
       if (isLoadingMarkets) return;
@@ -843,7 +947,8 @@
 
         const backendUrl = buildMarketsUrlBase(BACKEND_BASE_URL);
         try {
-          const backendData = await fetchJsonWithRetry(backendUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1000 });
+          const backendRes = await fetchJsonDetailed(backendUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1000 });
+          const backendData = backendRes.data;
           if (!Array.isArray(backendData)) throw new Error("Backend returned non-array JSON.");
           coinsRaw = backendData.filter(Boolean);
           saveMarketsCache(coinsRaw);
@@ -852,7 +957,8 @@
           console.warn("[Markets] backend failed, falling back to CoinGecko direct.", errBackend);
           setSourceBadge(DataSource.COINGECKO, "Source: CoinGecko direct (backend fallback) ⚠");
           const cgUrl = buildCoinGeckoMarketsUrl();
-          const cgData = await fetchJsonWithRetry(cgUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1200 });
+          const cgRes = await fetchJsonDetailed(cgUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 1200 });
+          const cgData = cgRes.data;
           if (!Array.isArray(cgData)) throw new Error("CoinGecko returned non-array JSON.");
           coinsRaw = cgData.filter(Boolean);
           saveMarketsCache(coinsRaw);
@@ -1033,183 +1139,118 @@
     }
 
     // ==========================================================
-    // AI
+    // AI: scenarios formatting (worldwide)
     // ==========================================================
-    async function fetchAiPredictionForCoin(coinId) {
-      const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
-      return await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
-    }
-
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
-  const lastN = safeNum(last);
-  const predN = safeNum(predicted);
-  const lowN0 = safeNum(low);
-  const highN0 = safeNum(high);
+      const lastN = safeNum(last);
+      const predN = safeNum(predicted);
+      const lowN0 = safeNum(low);
+      const highN0 = safeNum(high);
 
-  // Defensive fallback: UI should show "—"
-  if (lastN == null || predN == null || lowN0 == null || highN0 == null) {
-    return [
-      { label: "Bullish", prob: 62, from: null, to: null },
-      { label: "Bearish", prob: 28, from: null, to: null },
-      { label: "Bullish breakout", prob: 10, from: null, to: null }
-    ];
-  }
-
-  // Normalize bounds (just in case)
-  const lowN = Math.min(lowN0, highN0);
-  const highN = Math.max(lowN0, highN0);
-
-  // Confidence from interval width
-  const denom = Math.max(1e-9, Math.abs(lastN));
-  const width = Math.max(0, (highN - lowN)) / denom;
-  const tight = width < 0.04;
-
-  const pMain = tight ? 65 : 62;
-  const pAlt  = tight ? 25 : 28;
-  const pRare = Math.max(5, 100 - pMain - pAlt);
-
-  // Direction
-  const delta = (predN - lastN) / denom;
-  const mainIsBull = delta >= 0;
-
-  const mainLabel = mainIsBull ? "Bullish" : "Bearish";
-  const altLabel  = mainIsBull ? "Bearish" : "Bullish";
-  const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
-
-  // Main target: clamp predicted inside [low, high]
-  const mainTo = Math.min(highN, Math.max(lowN, predN));
-
-  // Alternative: opposite edge of the interval
-  const altTo = mainIsBull ? lowN : highN;
-
-  // Rare: breakout/breakdown just outside the interval (0.6%)
-  const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
-
-  // Ensure rare is actually outside the interval
-  const rareTo = mainIsBull
-    ? Math.max(rareToRaw, highN * 1.002)
-    : Math.min(rareToRaw, lowN * 0.998);
-
-  return [
-    { label: mainLabel, prob: pMain, from: lastN, to: mainTo },
-    { label: altLabel,  prob: pAlt,  from: lastN, to: altTo },
-    { label: rareLabel, prob: pRare, from: lastN, to: rareTo }
-  ];
-}
-
-   function renderProbabilisticScenarioList(scenarios) {
-  scenarioListEl.innerHTML = "";
-
-  for (const s of scenarios) {
-    const li = document.createElement("li");
-
-    const fromTxt = (s.from == null) ? "—" : formatPrice(s.from);
-    const toTxt   = (s.to == null) ? "—" : formatPrice(s.to);
-    const probTxt = Number.isFinite(Number(s.prob)) ? Number(s.prob).toFixed(0) : "—";
-    const labelTxt = (s && typeof s.label === "string") ? s.label : "Scenario";
-
-    li.textContent = `${labelTxt} (${probTxt}%) from ${fromTxt} → ${toTxt}`;
-    scenarioListEl.appendChild(li);
-  }
-}
-
-
-    // ==========================================================
-    // SELECT COIN + CHART + AI
-    // ==========================================================
-    async function handleCoinClick(id) {
-      const coin = coinsRaw.find((c) => c.id === id);
-      if (!coin) return;
-
-      selectedNameEl.textContent = coin.name ?? "Unknown";
-      selectedSymbolEl.textContent = (coin.symbol ?? "?").toUpperCase() + " / USD";
-      selectedPriceEl.textContent = formatPrice(coin.current_price);
-      metricMarketCapEl.textContent = "$" + formatNumberAbbr(coin.market_cap ?? 0);
-
-      selectedPillsEl.innerHTML = "";
-
-      const pill24 = document.createElement("span");
-      pill24.className = "pill-info " + ((coin.price_change_percentage_24h ?? 0) > 0 ? "green" : (coin.price_change_percentage_24h ?? 0) < 0 ? "red" : "");
-      pill24.textContent = "24h: " + formatPercent(coin.price_change_percentage_24h);
-      selectedPillsEl.appendChild(pill24);
-
-      const pill1h = document.createElement("span");
-      pill1h.className = "pill-info " + ((coin.price_change_percentage_1h_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_1h_in_currency ?? 0) < 0 ? "red" : "");
-      pill1h.textContent = "1h: " + formatPercent(coin.price_change_percentage_1h_in_currency);
-      selectedPillsEl.appendChild(pill1h);
-
-      const pill7d = document.createElement("span");
-      pill7d.className = "pill-info " + ((coin.price_change_percentage_7d_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_7d_in_currency ?? 0) < 0 ? "red" : "");
-      pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
-      selectedPillsEl.appendChild(pill7d);
-
-      // Chart (prefer backend; fallback to CoinGecko direct)
-      try {
-        await loadChartForCoin(coin);
-      } catch (e) {
-        console.warn("[Chart] skipped:", e);
+      if (lastN == null || predN == null || lowN0 == null || highN0 == null) {
+        return [
+          { label: "Bullish", prob: 62, from: null, to: null },
+          { label: "Bearish", prob: 28, from: null, to: null },
+          { label: "Breakout", prob: 10, from: null, to: null }
+        ];
       }
 
-      // AI prediction + scenarios
-      metricBiasEl.textContent = "Loading AI…";
-      coinCommentEl.textContent = "Fetching AI prediction from backend…";
-      scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
+      const lowN = Math.min(lowN0, highN0);
+      const highN = Math.max(lowN0, highN0);
 
-      try {
-        const ai = await fetchAiPredictionForCoin(coin.id);
+      const denom = Math.max(1e-9, Math.abs(lastN));
+      const width = Math.max(0, (highN - lowN)) / denom;
+      const tight = width < 0.04;
 
-        const last = safeNum(ai?.last_price);
-        const predicted = safeNum(ai?.predicted_price);
-        const low = safeNum(ai?.prediction_interval_68?.low);
-        const high = safeNum(ai?.prediction_interval_68?.high);
-        const rsi = safeNum(ai?.indicators?.rsi);
+      const pMain = tight ? 65 : 62;
+      const pAlt  = tight ? 25 : 28;
+      const pRare = Math.max(5, 100 - pMain - pAlt);
 
-       const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
-renderProbabilisticScenarioList(scenarios);
+      const delta = (predN - lastN) / denom;
+      const mainIsBull = delta >= 0;
 
-const model = ai?.model || "ai";
-metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
+      const mainLabel = mainIsBull ? "Bullish" : "Bearish";
+      const altLabel  = mainIsBull ? "Bearish" : "Bullish";
+      const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
-if (last != null && predicted != null && low != null && high != null) {
-  coinCommentEl.textContent =
-    `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
-} else {
-  coinCommentEl.textContent =
-    "Prediction returned, but some fields are missing (check backend response).";
-}
+      const mainTo = Math.min(highN, Math.max(lowN, predN));
+      const altTo = mainIsBull ? lowN : highN;
 
+      const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
+      const rareTo = mainIsBull
+        ? Math.max(rareToRaw, highN * 1.002)
+        : Math.min(rareToRaw, lowN * 0.998);
 
-      } catch (e) {
-        metricBiasEl.textContent = "AI unavailable";
-        coinCommentEl.textContent = "AI endpoint failed. Please try again later.";
-        scenarioListEl.innerHTML = "<li>AI is temporarily unavailable.</li>";
-        console.error("[AI] failed:", e);
+      return [
+        { label: mainLabel, prob: pMain, from: lastN, to: mainTo },
+        { label: altLabel,  prob: pAlt,  from: lastN, to: altTo },
+        { label: rareLabel, prob: pRare, from: lastN, to: rareTo }
+      ];
+    }
+
+    function renderProbabilisticScenarioList(scenarios) {
+      scenarioListEl.innerHTML = "";
+
+      for (const s of scenarios) {
+        const li = document.createElement("li");
+        const fromTxt = (s.from == null) ? "—" : formatPrice(s.from);
+        const toTxt   = (s.to == null) ? "—" : formatPrice(s.to);
+        const probTxt = Number.isFinite(Number(s.prob)) ? Number(s.prob).toFixed(0) : "—";
+        const labelTxt = (s && typeof s.label === "string") ? s.label : "Scenario";
+
+        // Exact worldwide format
+        li.innerHTML = `<div><strong>${labelTxt} (${probTxt}%)</strong> from <strong>${fromTxt}</strong> → <strong>${toTxt}</strong></div>`;
+        scenarioListEl.appendChild(li);
       }
     }
 
+    // ==========================================================
+    // AI: rate-limit UX (429) + retry
+    // ==========================================================
+    function stopAiRetryTimer() {
+      if (aiRetryTimer) clearInterval(aiRetryTimer);
+      aiRetryTimer = null;
+      aiRetryRemainingSec = 0;
+    }
+
+    function startAiRetryCountdown(seconds) {
+      stopAiRetryTimer();
+      aiRetryRemainingSec = Math.max(1, Math.floor(seconds || 10));
+      btnRetryAi.disabled = true;
+
+      aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
+
+      aiRetryTimer = setInterval(() => {
+        aiRetryRemainingSec -= 1;
+        if (aiRetryRemainingSec <= 0) {
+          stopAiRetryTimer();
+          btnRetryAi.disabled = false;
+          aiHint.textContent = "AI retry is available now.";
+          return;
+        }
+        aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
+      }, 1000);
+    }
+
+    async function fetchAiPredictionForCoin(coinId, { days, timeframe } = {}) {
+      const url = buildAiUrl({ coinId, days, timeframe });
+      return await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+    }
+
+    // ==========================================================
+    // CHART: backend-only (no CoinGecko direct fallback due to CORS + plan limits)
+    // ==========================================================
     async function loadChartForCoin(coin) {
       const id = coin.id;
+
+      // cached in memory
       let chartData = chartCache.get(id);
-
       if (!chartData) {
-        // 1) Try backend /chart
-        try {
-          const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 7, interval: "hourly" });
-          const data = await fetchJsonWithRetry(backendUrl, { timeoutMs: 15000, retries: 0, retryDelayMs: 900, mode: "cors" });
-          const prices = Array.isArray(data?.prices) ? data.prices : [];
-          if (!prices.length) throw new Error("Backend chart returned empty prices.");
-          chartData = normalizeChartPrices(prices);
-        } catch (errBackendChart) {
-          console.warn("[Chart] backend failed, fallback to CoinGecko direct.", errBackendChart);
-
-          // 2) Fallback CoinGecko direct
-          const cgUrl = buildCoinGeckoChartUrl({ coinId: id, vsCurrency: "usd", days: 7, interval: "hourly" });
-          const data2 = await fetchJsonWithRetry(cgUrl, { timeoutMs: 15000, retries: 1, retryDelayMs: 900, mode: "cors" });
-          const prices2 = Array.isArray(data2?.prices) ? data2.prices : [];
-          if (!prices2.length) throw new Error("CoinGecko chart returned empty prices.");
-          chartData = normalizeChartPrices(prices2);
-        }
-
+        const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 30, interval: "daily" });
+        const res = await fetchJsonDetailed(backendUrl, { timeoutMs: 20000, retries: 0, mode: "cors" });
+        const prices = Array.isArray(res?.data?.prices) ? res.data.prices : [];
+        if (!prices.length) throw new Error("Backend chart returned empty prices.");
+        chartData = normalizeChartPrices(prices);
         chartCache.set(id, chartData);
       }
 
@@ -1265,6 +1306,122 @@ if (last != null && predicted != null && low != null && high != null) {
     }
 
     // ==========================================================
+    // SELECT COIN: chart + AI
+    // ==========================================================
+    async function handleCoinClick(id) {
+      const coin = coinsRaw.find((c) => c.id === id);
+      if (!coin) return;
+
+      selectedCoinId = id;
+      btnRetryAi.disabled = true;
+      stopAiRetryTimer();
+
+      selectedNameEl.textContent = coin.name ?? "Unknown";
+      selectedSymbolEl.textContent = (coin.symbol ?? "?").toUpperCase() + " / USD";
+      selectedPriceEl.textContent = formatPrice(coin.current_price);
+      metricMarketCapEl.textContent = "$" + formatNumberAbbr(coin.market_cap ?? 0);
+
+      selectedPillsEl.innerHTML = "";
+
+      const pill24 = document.createElement("span");
+      pill24.className = "pill-info " + ((coin.price_change_percentage_24h ?? 0) > 0 ? "green" : (coin.price_change_percentage_24h ?? 0) < 0 ? "red" : "");
+      pill24.textContent = "24h: " + formatPercent(coin.price_change_percentage_24h);
+      selectedPillsEl.appendChild(pill24);
+
+      const pill1h = document.createElement("span");
+      pill1h.className = "pill-info " + ((coin.price_change_percentage_1h_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_1h_in_currency ?? 0) < 0 ? "red" : "");
+      pill1h.textContent = "1h: " + formatPercent(coin.price_change_percentage_1h_in_currency);
+      selectedPillsEl.appendChild(pill1h);
+
+      const pill7d = document.createElement("span");
+      pill7d.className = "pill-info " + ((coin.price_change_percentage_7d_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_7d_in_currency ?? 0) < 0 ? "red" : "");
+      pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
+      selectedPillsEl.appendChild(pill7d);
+
+      // Chart: backend-only
+      try {
+        coinCommentEl.textContent = "Loading chart from backend…";
+        await loadChartForCoin(coin);
+      } catch (e) {
+        console.error("[Chart] failed:", e);
+        coinCommentEl.textContent = "Chart unavailable (backend rate-limit or network). Please retry later.";
+        if (priceChart) { priceChart.destroy(); priceChart = null; }
+      }
+
+      // AI prediction + scenarios
+      metricBiasEl.textContent = "Loading AI…";
+      coinCommentEl.textContent = "Fetching AI prediction from backend…";
+      scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
+      aiHint.textContent = "AI request in progress…";
+
+      const tf = (tfSelect.value || "1d");
+      const days = Number(daysSelect.value || 90);
+      savePrefs(tf, days);
+
+      try {
+        const aiRes = await fetchAiPredictionForCoin(coin.id, { days, timeframe: tf });
+        const ai = aiRes.data;
+
+        const last = safeNum(ai?.last_price);
+        const predicted = safeNum(ai?.predicted_price);
+        const low = safeNum(ai?.prediction_interval_68?.low);
+        const high = safeNum(ai?.prediction_interval_68?.high);
+        const rsi = safeNum(ai?.indicators?.rsi);
+
+        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
+        renderProbabilisticScenarioList(scenarios);
+
+        const model = ai?.model || "ai";
+        metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
+
+        if (last != null && predicted != null && low != null && high != null) {
+          coinCommentEl.textContent =
+            `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
+          aiHint.textContent = `AI OK • TF ${tf} • History ${days}d`;
+        } else {
+          coinCommentEl.textContent =
+            "Prediction returned, but some fields are missing (check backend response).";
+          aiHint.textContent = "AI responded, but some values were missing.";
+        }
+
+      } catch (e) {
+        console.error("[AI] failed:", e);
+
+        // If 429, show countdown and enable retry
+        const status = e && e.status;
+        if (status === 429) {
+          // Try to read Retry-After; if missing, use a safe default.
+          let retryAfter = 15;
+          try {
+            const ra = e.headers && e.headers.get && e.headers.get("Retry-After");
+            const raNum = Number(ra);
+            if (Number.isFinite(raNum) && raNum > 0) retryAfter = raNum;
+          } catch {}
+
+          metricBiasEl.textContent = "AI rate-limited";
+          coinCommentEl.textContent = "AI rate-limited by upstream. Please retry shortly.";
+          scenarioListEl.innerHTML = "<li>AI rate-limited. Retry shortly.</li>";
+          startAiRetryCountdown(retryAfter);
+          return;
+        }
+
+        metricBiasEl.textContent = "AI unavailable";
+        coinCommentEl.textContent = "AI endpoint failed. Please try again later.";
+        scenarioListEl.innerHTML = "<li>AI is temporarily unavailable.</li>";
+        aiHint.textContent = "AI unavailable (network/backend).";
+        btnRetryAi.disabled = false; // manual retry allowed
+      }
+    }
+
+    // Retry AI button
+    async function retryAiForSelectedCoin() {
+      if (!selectedCoinId) return;
+      const coin = coinsRaw.find((c) => c.id === selectedCoinId);
+      if (!coin) return;
+      await handleCoinClick(selectedCoinId);
+    }
+
+    // ==========================================================
     // BACKEND TESTS
     // ==========================================================
     async function testHealth() {
@@ -1272,8 +1429,8 @@ if (last != null && predicted != null && low != null && high != null) {
       aiResult.textContent = "Calling: " + url;
       btnHealth.disabled = true;
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 12000, retries: 0, mode: "cors" });
-        aiResult.textContent = JSON.stringify(data, null, 2);
+        const res = await fetchJsonDetailed(url, { timeoutMs: 12000, retries: 0, mode: "cors" });
+        aiResult.textContent = JSON.stringify(res.data, null, 2);
       } catch (err) {
         aiResult.textContent = "Health error:\n" + String(err);
       } finally {
@@ -1285,12 +1442,16 @@ if (last != null && predicted != null && low != null && high != null) {
       const coinId = (aiInput.value || "bitcoin").trim();
       if (!coinId) { aiResult.textContent = "Please enter a CoinGecko coin id."; return; }
 
-      const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+      const tf = (tfSelect.value || "1d");
+      const days = Number(daysSelect.value || 90);
+
+      const url = buildAiUrl({ coinId, days, timeframe: tf });
       aiResult.textContent = "Calling: " + url;
       btnTestBackend.disabled = true;
 
       try {
-        const data = await fetchJsonWithRetry(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+        const res = await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+        const data = res.data;
 
         document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
         document.getElementById("ai-summary-last").textContent =
@@ -1331,8 +1492,44 @@ if (last != null && predicted != null && low != null && high != null) {
     btnTestBackend.addEventListener("click", handleAiBackendTest);
     btnHealth.addEventListener("click", testHealth);
 
+    btnRetryAi.addEventListener("click", async () => {
+      btnRetryAi.disabled = true;
+      stopAiRetryTimer();
+      aiHint.textContent = "Retrying AI…";
+      await retryAiForSelectedCoin();
+    });
+
+    btnClearCache.addEventListener("click", () => {
+      clearAllCaches();
+      aiHint.textContent = "Cache cleared.";
+    });
+
+    tfSelect.addEventListener("change", () => {
+      const days = Number(daysSelect.value || 90);
+      savePrefs(tfSelect.value, days);
+      if (selectedCoinId) {
+        aiHint.textContent = "Timeframe changed. Click Retry AI to refresh scenarios.";
+        btnRetryAi.disabled = false;
+      }
+    });
+
+    daysSelect.addEventListener("change", () => {
+      const days = Number(daysSelect.value || 90);
+      savePrefs(tfSelect.value, days);
+      if (selectedCoinId) {
+        aiHint.textContent = "History changed. Click Retry AI to refresh scenarios.";
+        btnRetryAi.disabled = false;
+      }
+    });
+
     document.addEventListener("DOMContentLoaded", () => {
       setSourceBadge("init", "Source: checking…");
+
+      // Restore prefs
+      const prefs = loadPrefs();
+      if (prefs && prefs.tf) tfSelect.value = prefs.tf;
+      if (prefs && Number.isFinite(Number(prefs.days))) daysSelect.value = String(prefs.days);
+
       loadMarkets({ reason: "auto" });
     });
   </script>
