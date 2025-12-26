@@ -1043,11 +1043,11 @@
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
   const lastN = safeNum(last);
   const predN = safeNum(predicted);
-  const lowN  = safeNum(low);
-  const highN = safeNum(high);
+  const lowN0 = safeNum(low);
+  const highN0 = safeNum(high);
 
-  // Defensive fallback: return "null targets" (UI should show "—")
-  if (lastN == null || predN == null || lowN == null || highN == null) {
+  // Defensive fallback: UI should show "—"
+  if (lastN == null || predN == null || lowN0 == null || highN0 == null) {
     return [
       { label: "Bullish", prob: 62, from: null, to: null },
       { label: "Bearish", prob: 28, from: null, to: null },
@@ -1055,8 +1055,13 @@
     ];
   }
 
+  // Normalize bounds (just in case)
+  const lowN = Math.min(lowN0, highN0);
+  const highN = Math.max(lowN0, highN0);
+
   // Confidence from interval width
-  const width = Math.max(0, (highN - lowN)) / Math.max(1e-9, lastN);
+  const denom = Math.max(1e-9, Math.abs(lastN));
+  const width = Math.max(0, (highN - lowN)) / denom;
   const tight = width < 0.04;
 
   const pMain = tight ? 65 : 62;
@@ -1064,15 +1069,14 @@
   const pRare = Math.max(5, 100 - pMain - pAlt);
 
   // Direction
-  const delta = (predN - lastN) / Math.max(1e-9, lastN);
+  const delta = (predN - lastN) / denom;
   const mainIsBull = delta >= 0;
 
-  // Targets (clear & consistent)
   const mainLabel = mainIsBull ? "Bullish" : "Bearish";
   const altLabel  = mainIsBull ? "Bearish" : "Bullish";
   const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
-  // Main target: predicted, but keep it within [low, high] to avoid nonsense
+  // Main target: clamp predicted inside [low, high]
   const mainTo = Math.min(highN, Math.max(lowN, predN));
 
   // Alternative: opposite edge of the interval
@@ -1081,7 +1085,7 @@
   // Rare: breakout/breakdown just outside the interval (0.6%)
   const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
 
-  // Ensure rare is actually outside the interval (if data is tight/weird)
+  // Ensure rare is actually outside the interval
   const rareTo = mainIsBull
     ? Math.max(rareToRaw, highN * 1.002)
     : Math.min(rareToRaw, lowN * 0.998);
@@ -1093,18 +1097,18 @@
   ];
 }
 
-    function renderProbabilisticScenarioList(scenarios) {
+   function renderProbabilisticScenarioList(scenarios) {
   scenarioListEl.innerHTML = "";
 
-  // scenarios = [{label, prob, from, to}, ...]
   for (const s of scenarios) {
     const li = document.createElement("li");
 
     const fromTxt = (s.from == null) ? "—" : formatPrice(s.from);
     const toTxt   = (s.to == null) ? "—" : formatPrice(s.to);
     const probTxt = Number.isFinite(Number(s.prob)) ? Number(s.prob).toFixed(0) : "—";
+    const labelTxt = (s && typeof s.label === "string") ? s.label : "Scenario";
 
-    li.innerHTML = `<div><strong>${s.label} (${probTxt}%) from ${fromTxt} → ${toTxt}</strong></div>`;
+    li.textContent = `${labelTxt} (${probTxt}%) from ${fromTxt} → ${toTxt}`;
     scenarioListEl.appendChild(li);
   }
 }
