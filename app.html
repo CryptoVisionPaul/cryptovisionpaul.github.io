@@ -1160,18 +1160,20 @@
         const high = safeNum(ai?.prediction_interval_68?.high);
         const rsi = safeNum(ai?.indicators?.rsi);
 
-        const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
-        renderProbabilisticScenarioList(scenarios);
+       const scenarios = computeProbabilisticScenarios({ last, predicted, low, high });
+renderProbabilisticScenarioList(scenarios);
 
-        const model = ai?.model || "ai";
-        metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
+const model = ai?.model || "ai";
+metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
 
-        if (predicted != null && low != null && high != null) {
-          coinCommentEl.textContent =
-            `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
-        } else {
-          coinCommentEl.textContent = "Prediction returned, but some fields are missing (check backend response).";
-        }
+if (last != null && predicted != null && low != null && high != null) {
+  coinCommentEl.textContent =
+    `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
+} else {
+  coinCommentEl.textContent =
+    "Prediction returned, but some fields are missing (check backend response).";
+}
+
 
       } catch (e) {
         metricBiasEl.textContent = "AI unavailable";
