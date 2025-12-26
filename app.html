@@ -1041,44 +1041,57 @@
     }
 
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
-      const lastN = safeNum(last);
-      const predN = safeNum(predicted);
-      const lowN  = safeNum(low);
-      const highN = safeNum(high);
+  const lastN = safeNum(last);
+  const predN = safeNum(predicted);
+  const lowN  = safeNum(low);
+  const highN = safeNum(high);
 
-      // Defensive fallback
-      if (lastN == null || predN == null || lowN == null || highN == null) {
-        return [
-          { dir: "Bullish", prob: 62, from: lastN ?? 0, to: lastN ?? 0 },
-          { dir: "Bearish", prob: 28, from: lastN ?? 0, to: lastN ?? 0 },
-          { dir: "Bullish", prob: 10, from: lastN ?? 0, to: lastN ?? 0 }
-        ];
-      }
+  // Defensive fallback: return "null targets" (UI should show "—")
+  if (lastN == null || predN == null || lowN == null || highN == null) {
+    return [
+      { label: "Bullish", prob: 62, from: null, to: null },
+      { label: "Bearish", prob: 28, from: null, to: null },
+      { label: "Bullish breakout", prob: 10, from: null, to: null }
+    ];
+  }
 
-      const width = (highN - lowN) / Math.max(1e-9, lastN);
-      const tight = width < 0.04;
-      const pMain = tight ? 65 : 62;
-      const pAlt  = tight ? 25 : 28;
-      const pRare = 100 - pMain - pAlt;
+  // Confidence from interval width
+  const width = Math.max(0, (highN - lowN)) / Math.max(1e-9, lastN);
+  const tight = width < 0.04;
 
-      const delta = (predN - lastN) / Math.max(1e-9, lastN);
-      const mainDir = delta >= 0 ? "Bullish" : "Bearish";
-      const altDir  = mainDir === "Bullish" ? "Bearish" : "Bullish";
-      const rareDir = mainDir;
+  const pMain = tight ? 65 : 62;
+  const pAlt  = tight ? 25 : 28;
+  const pRare = Math.max(5, 100 - pMain - pAlt);
 
-      const mainTo = mainDir === "Bullish"
-        ? Math.min(highN, Math.max(predN, lastN))
-        : Math.max(lowN,  Math.min(predN, lastN));
+  // Direction
+  const delta = (predN - lastN) / Math.max(1e-9, lastN);
+  const mainIsBull = delta >= 0;
 
-      const altTo  = altDir === "Bullish" ? highN : lowN;
-      const rareTo = rareDir === "Bullish" ? (highN * 1.006) : (lowN * 0.994);
+  // Targets (clear & consistent)
+  const mainLabel = mainIsBull ? "Bullish" : "Bearish";
+  const altLabel  = mainIsBull ? "Bearish" : "Bullish";
+  const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
-      return [
-        { dir: mainDir, prob: pMain, from: lastN, to: mainTo },
-        { dir: altDir,  prob: pAlt,  from: lastN, to: altTo  },
-        { dir: rareDir, prob: pRare, from: lastN, to: rareTo }
-      ];
-    }
+  // Main target: predicted, but keep it within [low, high] to avoid nonsense
+  const mainTo = Math.min(highN, Math.max(lowN, predN));
+
+  // Alternative: opposite edge of the interval
+  const altTo = mainIsBull ? lowN : highN;
+
+  // Rare: breakout/breakdown just outside the interval (0.6%)
+  const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
+
+  // Ensure rare is actually outside the interval (if data is tight/weird)
+  const rareTo = mainIsBull
+    ? Math.max(rareToRaw, highN * 1.002)
+    : Math.min(rareToRaw, lowN * 0.998);
+
+  return [
+    { label: mainLabel, prob: pMain, from: lastN, to: mainTo },
+    { label: altLabel,  prob: pAlt,  from: lastN, to: altTo },
+    { label: rareLabel, prob: pRare, from: lastN, to: rareTo }
+  ];
+}
 
     function renderProbabilisticScenarioList(scenarios) {
       scenarioListEl.innerHTML = "";
