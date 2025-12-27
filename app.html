@@ -1157,51 +1157,127 @@
     // AI: scenarios (worldwide) + render
     // ==========================================================
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
-      const lastN = safeNum(last);
-      const predN = safeNum(predicted);
-      const lowN0 = safeNum(low);
-      const highN0 = safeNum(high);
+  const lastN = safeNum(last);
+  const predN = safeNum(predicted);
+  const lowN0 = safeNum(low);
+  const highN0 = safeNum(high);
 
-      if (lastN == null || predN == null || lowN0 == null || highN0 == null) {
-        return [
-          { label: "Bullish", prob: 62, from: null, to: null },
-          { label: "Bearish", prob: 28, from: null, to: null },
-          { label: "Breakout", prob: 10, from: null, to: null }
-        ];
-      }
+  // Defensive fallback (UI shows "—")
+  if (lastN == null || predN == null || lowN0 == null || highN0 == null) {
+    return [
+      { label: "Bullish", prob: 62, from: null, to: null },
+      { label: "Bearish", prob: 28, from: null, to: null },
+      { label: "Breakout", prob: 10, from: null, to: null }
+    ];
+  }
 
-      const lowN = Math.min(lowN0, highN0);
-      const highN = Math.max(lowN0, highN0);
+  // Normalize bounds (handle swapped / weird data)
+  const lowN = Math.min(lowN0, highN0);
+  const highN = Math.max(lowN0, highN0);
 
-      const denom = Math.max(1e-9, Math.abs(lastN));
-      const width = Math.max(0, (highN - lowN)) / denom;
-      const tight = width < 0.04;
+  // Safety denom
+  const denom = Math.max(1e-9, Math.abs(lastN));
 
-      const pMain = tight ? 65 : 62;
-      const pAlt  = tight ? 25 : 28;
-      const pRare = Math.max(5, 100 - pMain - pAlt);
+  // Interval width as relative volatility proxy
+  const widthRel = Math.max(0, (highN - lowN)) / denom;
 
-      const delta = (predN - lastN) / denom;
-      const mainIsBull = delta >= 0;
+  // Minimum visible move: 0.5% (as requested), but also not larger than half the interval if interval is tiny
+  const MIN_MOVE_REL = 0.005; // 0.5%
+  const minMoveRel = Math.max(MIN_MOVE_REL, Math.min(0.02, widthRel * 0.35)); // adapt a bit, capped at 2%
+  const minUp = lastN * (1 + minMoveRel);
+  const minDown = lastN * (1 - minMoveRel);
 
-      const mainLabel = mainIsBull ? "Bullish" : "Bearish";
-      const altLabel  = mainIsBull ? "Bearish" : "Bullish";
-      const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
+  // "Tight" confidence: if interval is narrow, main prob slightly higher
+  const tight = widthRel < 0.04;
+  const pMain = tight ? 65 : 62;
+  const pAlt  = tight ? 25 : 28;
+  const pRare = Math.max(5, 100 - pMain - pAlt);
 
-      const mainTo = Math.min(highN, Math.max(lowN, predN));
-      const altTo  = mainIsBull ? lowN : highN;
+  // Determine direction from predicted vs last
+  const deltaRel = (predN - lastN) / denom;
+  const mainIsBull = deltaRel >= 0;
 
-      const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
-      const rareTo = mainIsBull
-        ? Math.max(rareToRaw, highN * 1.002)
-        : Math.min(rareToRaw, lowN * 0.998);
+  const mainLabel = mainIsBull ? "Bullish" : "Bearish";
+  const altLabel  = mainIsBull ? "Bearish" : "Bullish";
+  const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
-      return [
-        { label: mainLabel, prob: pMain, from: lastN, to: mainTo },
-        { label: altLabel,  prob: pAlt,  from: lastN, to: altTo  },
-        { label: rareLabel, prob: pRare, from: lastN, to: rareTo }
-      ];
+  // Clamp predicted inside interval for sanity
+  const predClamped = Math.min(highN, Math.max(lowN, predN));
+
+  // MAIN target:
+  // Ensure it moves at least +/- minMoveRel in the correct direction, but never outside [low, high]
+  let mainTo;
+  if (mainIsBull) {
+    mainTo = Math.max(predClamped, minUp);
+    mainTo = Math.min(mainTo, highN);
+    // If interval too tight and mainTo couldn't move up, still force a small up move (tiny above last),
+    // but keep within highN
+    if (mainTo <= lastN) mainTo = Math.min(highN, minUp);
+  } else {
+    mainTo = Math.min(predClamped, minDown);
+    mainTo = Math.max(mainTo, lowN);
+    if (mainTo >= lastN) mainTo = Math.max(lowN, minDown);
+  }
+
+  // ALT target:
+  // Opposite direction, ensure at least min move, but stay within interval.
+  let altTo;
+  if (mainIsBull) {
+    // bearish alternative -> toward low side
+    altTo = Math.min(lowN, minDown);
+    // If lowN is above minDown (tight interval), at least go to lowN
+    altTo = Math.min(altTo, lastN - Math.abs(lastN * minMoveRel));
+    altTo = Math.max(lowN, altTo);
+    // Ensure altTo is below last
+    if (altTo >= lastN) altTo = Math.max(lowN, minDown);
+  } else {
+    // bullish alternative -> toward high side
+    altTo = Math.max(highN, minUp);
+    altTo = Math.max(altTo, lastN + Math.abs(lastN * minMoveRel));
+    altTo = Math.min(highN, altTo);
+    // Ensure altTo is above last
+    if (altTo <= lastN) altTo = Math.min(highN, minUp);
+  }
+
+  // Ensure MAIN and ALT are not identical; if they are, separate them minimally inside bounds
+  if (Math.abs(mainTo - altTo) <= Math.abs(lastN) * 0.0005) { // ~0.05%
+    if (mainIsBull) {
+      mainTo = Math.min(highN, Math.max(mainTo, minUp));
+      altTo = Math.max(lowN, Math.min(altTo, minDown));
+    } else {
+      mainTo = Math.max(lowN, Math.min(mainTo, minDown));
+      altTo = Math.min(highN, Math.max(altTo, minUp));
     }
+  }
+
+  // RARE breakout/breakdown:
+  // Always outside interval by a small margin (0.6% default), but at least outside by 0.2%
+  const OUT_REL = 0.006;     // 0.6%
+  const OUT_MIN = 0.002;     // 0.2% guaranteed outside
+  let rareTo;
+  if (mainIsBull) {
+    const raw = highN * (1 + OUT_REL);
+    const minOutside = highN * (1 + OUT_MIN);
+    rareTo = Math.max(raw, minOutside);
+  } else {
+    const raw = lowN * (1 - OUT_REL);
+    const minOutside = lowN * (1 - OUT_MIN);
+    rareTo = Math.min(raw, minOutside);
+  }
+
+  // Final sanity: enforce the direction semantics strictly
+  const from = lastN;
+
+  // If due to weird bounds we still can't satisfy direction, null the target rather than lie
+  const mainOk = mainIsBull ? (mainTo > from) : (mainTo < from);
+  const altOk  = mainIsBull ? (altTo < from) : (altTo > from);
+
+  return [
+    { label: mainLabel, prob: pMain, from, to: mainOk ? mainTo : null },
+    { label: altLabel,  prob: pAlt,  from, to: altOk  ? altTo  : null },
+    { label: rareLabel, prob: pRare, from, to: rareTo }
+  ];
+}
 
     function renderProbabilisticScenarioList(scenarios) {
       scenarioListEl.innerHTML = "";
