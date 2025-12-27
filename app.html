@@ -660,6 +660,7 @@
     let currentSort = "rank";
     let priceChart = null;
     const chartCache = new Map(); // key: coinId -> {labels, values}
+    const aiCache = new Map(); // coinId -> { ts, data }
 
     const DataSource = {
       BACKEND: "backend-proxy",
