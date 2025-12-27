@@ -609,8 +609,9 @@
     const REFRESH_MIN_INTERVAL_MS = 60_000;
     const MARKETS_CACHE_TTL_MS = 60_000;
     const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
+
     // AI cache (browser)
-    const AI_CACHE_TTL_MS = 120_000; // 2 minutes (reduce 429 a lot)
+    const AI_CACHE_TTL_MS = 120_000; // 2 minutes
 
     // Endpoints
     const AI_ENDPOINT = "/ai/predict";
@@ -659,8 +660,9 @@
     let filteredCoins = [];
     let currentSort = "rank";
     let priceChart = null;
-    const chartCache = new Map(); // key: coinId -> {labels, values}
-    const aiCache = new Map(); // coinId -> { ts, data }
+
+    const chartCache = new Map(); // coinId -> {labels, values}
+    const aiCache = new Map();    // coinId -> { ts, data }
 
     const DataSource = {
       BACKEND: "backend-proxy",
@@ -806,9 +808,16 @@
 
     function clearAllCaches() {
       try { localStorage.removeItem(STORAGE_KEY_MARKETS); } catch {}
+      // keep prefs intentionally; comment next line if you want to wipe prefs too:
+      // try { localStorage.removeItem(STORAGE_KEY_PREFS); } catch {}
+
       chartCache.clear();
+      aiCache.clear();
+
       coinCommentEl.textContent = "Cache cleared. Select a coin again.";
       scenarioListEl.innerHTML = "<li>—</li>";
+      aiHint.textContent = "Cache cleared.";
+
       if (priceChart) { priceChart.destroy(); priceChart = null; }
     }
 
@@ -841,14 +850,10 @@
           let body = null;
           let text = "";
 
-          if (isJson) {
-            body = await res.json().catch(() => null);
-          } else {
-            text = await res.text().catch(() => "");
-          }
+          if (isJson) body = await res.json().catch(() => null);
+          else text = await res.text().catch(() => "");
 
           if (!res.ok) {
-            // include json error if present
             const msg = isJson ? JSON.stringify(body).slice(0, 260) : (text || "").slice(0, 260);
             const err = new Error(`HTTP ${res.status} ${res.statusText}${msg ? (" - " + msg) : ""}`);
             err.status = res.status;
@@ -869,6 +874,12 @@
       }
 
       throw lastErr;
+    }
+
+    // Compatibility helper (returns JSON only)
+    async function fetchJsonWithRetry(url, opts = {}) {
+      const res = await fetchJsonDetailed(url, opts);
+      return res.data;
     }
 
     // ==========================================================
@@ -910,7 +921,7 @@
     }
 
     function buildBackendChartUrl({ coinId, vsCurrency = "usd", days = 30, interval = "daily" }) {
-      // IMPORTANT: use daily to avoid CoinGecko enterprise-only "hourly" limitations.
+      // IMPORTANT: daily to avoid "hourly" enterprise-only constraints.
       const base = BACKEND_BASE_URL.replace(/\/$/, "");
       const qs = new URLSearchParams({
         coin_id: coinId,
@@ -922,7 +933,7 @@
     }
 
     // ==========================================================
-    // MAIN: markets loader (keeps CoinGecko fallback)
+    // MAIN: markets loader
     // ==========================================================
     async function loadMarkets({ reason = "auto" } = {}) {
       if (isLoadingMarkets) return;
@@ -1143,7 +1154,7 @@
     }
 
     // ==========================================================
-    // AI: scenarios formatting (worldwide)
+    // AI: scenarios (worldwide) + render
     // ==========================================================
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
       const lastN = safeNum(last);
@@ -1178,7 +1189,7 @@
       const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
       const mainTo = Math.min(highN, Math.max(lowN, predN));
-      const altTo = mainIsBull ? lowN : highN;
+      const altTo  = mainIsBull ? lowN : highN;
 
       const rareToRaw = mainIsBull ? (highN * 1.006) : (lowN * 0.994);
       const rareTo = mainIsBull
@@ -1187,49 +1198,47 @@
 
       return [
         { label: mainLabel, prob: pMain, from: lastN, to: mainTo },
-        { label: altLabel,  prob: pAlt,  from: lastN, to: altTo },
+        { label: altLabel,  prob: pAlt,  from: lastN, to: altTo  },
         { label: rareLabel, prob: pRare, from: lastN, to: rareTo }
       ];
     }
 
-   <script>
-function renderProbabilisticScenarioList(scenarios) {
-  scenarioListEl.innerHTML = "";
+    function renderProbabilisticScenarioList(scenarios) {
+      scenarioListEl.innerHTML = "";
 
-  if (!Array.isArray(scenarios) || scenarios.length === 0) {
-    scenarioListEl.innerHTML = "<li>No scenarios available.</li>";
-    return;
-  }
+      if (!Array.isArray(scenarios) || scenarios.length === 0) {
+        scenarioListEl.innerHTML = "<li>No scenarios available.</li>";
+        return;
+      }
 
-  for (const s of scenarios) {
-    const li = document.createElement("li");
+      for (const s of scenarios) {
+        const li = document.createElement("li");
 
-    const label =
-      (s && typeof s.label === "string" && s.label.trim()) ? s.label : "Scenario";
+        const label =
+          (s && typeof s.label === "string" && s.label.trim()) ? s.label : "Scenario";
 
-    const prob =
-      Number.isFinite(Number(s.prob)) ? `${Number(s.prob).toFixed(0)}%` : "—";
+        const prob =
+          Number.isFinite(Number(s.prob)) ? `${Number(s.prob).toFixed(0)}%` : "—";
 
-    const fromTxt =
-      (s.from == null) ? "—" : formatPrice(s.from);
+        const fromTxt =
+          (s.from == null) ? "—" : formatPrice(s.from);
 
-    const toTxt =
-      (s.to == null) ? "—" : formatPrice(s.to);
+        const toTxt =
+          (s.to == null) ? "—" : formatPrice(s.to);
 
-    li.innerHTML = `
-      <div>
-        <strong>${label} (${prob})</strong>
-        &nbsp;from&nbsp;
-        <strong>${fromTxt}</strong>
-        &nbsp;→&nbsp;
-        <strong>${toTxt}</strong>
-      </div>
-    `;
+        li.innerHTML = `
+          <div>
+            <strong>${label} (${prob})</strong>
+            &nbsp;from&nbsp;
+            <strong>${fromTxt}</strong>
+            &nbsp;→&nbsp;
+            <strong>${toTxt}</strong>
+          </div>
+        `;
 
-    scenarioListEl.appendChild(li);
-  }
-}
-</script>
+        scenarioListEl.appendChild(li);
+      }
+    }
 
     // ==========================================================
     // AI: rate-limit UX (429) + retry
@@ -1259,58 +1268,100 @@ function renderProbabilisticScenarioList(scenarios) {
       }, 1000);
     }
 
-   async function fetchAiPredictionForCoin(coinId) {
-  const now = Date.now();
+    async function fetchAiPredictionForCoin(coinId, { days = 90, timeframe = "1d" } = {}) {
+      const now = Date.now();
 
-  // 1) Use cache only if NOT forcing refresh
-  if (!forceAiRefresh) {
-    const cached = aiCache.get(coinId);
-    if (cached && (now - cached.ts) <= AI_CACHE_TTL_MS) {
-      return cached.data;
+      // 1) Use cache only if NOT forcing refresh
+      if (!forceAiRefresh) {
+        const cached = aiCache.get(coinId);
+        if (cached && (now - cached.ts) <= AI_CACHE_TTL_MS) {
+          return cached.data;
+        }
+      }
+
+      const url = buildAiUrl({ coinId, days, timeframe });
+
+      try {
+        // 2) Normal backend call
+        const res = await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+        const data = res.data;
+
+        aiCache.set(coinId, { ts: now, data });
+        return data;
+
+      } catch (err) {
+        const status = err && err.status;
+
+        // 3) If throttled, return ANY cached data (even stale)
+        const cached = aiCache.get(coinId);
+        if (status === 429 && cached && cached.data) {
+          return cached.data;
+        }
+
+        // 4) Small backoff + single retry
+        await new Promise(r => setTimeout(r, 1200));
+
+        const res2 = await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+        const data2 = res2.data;
+
+        aiCache.set(coinId, { ts: Date.now(), data: data2 });
+        return data2;
+
+      } finally {
+        // 5) IMPORTANT: reset force flag after one attempt
+        forceAiRefresh = false;
+      }
     }
-  }
 
-  const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+    // ==========================================================
+    // CHART (backend-only, daily, 30d)
+    // ==========================================================
+    async function loadChartForCoin(coin) {
+      const id = coin.id;
 
-  try {
-    // 2) Normal backend call
-    const data = await fetchJsonWithRetry(url, {
-      timeoutMs: 45000,
-      retries: 0,
-      mode: "cors"
-    });
+      let chartData = chartCache.get(id);
+      if (!chartData) {
+        const backendUrl = buildBackendChartUrl({
+          coinId: id,
+          vsCurrency: "usd",
+          days: 30,
+          interval: "daily"
+        });
 
-    aiCache.set(coinId, { ts: now, data });
-    return data;
+        const payload = await fetchJsonWithRetry(backendUrl, { timeoutMs: 18000, retries: 0, mode: "cors" });
+        const prices = Array.isArray(payload?.prices) ? payload.prices : [];
+        if (!prices.length) throw new Error("Backend chart returned empty prices.");
+        chartData = normalizeChartPrices(prices);
+        chartCache.set(id, chartData);
+      }
 
-  } catch (err) {
-    const errMsg = String(err || "");
-    const is429 = errMsg.includes("429");
+      const canvas = document.getElementById("priceChart");
+      const ctx = canvas.getContext("2d");
+      if (priceChart) priceChart.destroy();
 
-    // 3) If throttled, return ANY cached data (even stale) → best UX
-    const cached = aiCache.get(coinId);
-    if (is429 && cached && cached.data) {
-      return cached.data;
+      priceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartData.labels,
+          datasets: [{
+            label: `${coin.name} – price (USD)`,
+            data: chartData.values,
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.25
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
+          scales: {
+            x: { ticks: { color: "#9ca3af", maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }, grid: { display: false } },
+            y: { ticks: { color: "#9ca3af", callback: (v) => "$" + Number(v).toFixed(0) }, grid: { color: "rgba(55, 65, 81, 0.6)" } }
+          }
+        }
+      });
     }
-
-    // 4) Small backoff + single retry (Render wake / transient issue)
-    await new Promise(r => setTimeout(r, 1200));
-
-    const data2 = await fetchJsonWithRetry(url, {
-      timeoutMs: 45000,
-      retries: 0,
-      mode: "cors"
-    });
-
-    aiCache.set(coinId, { ts: Date.now(), data: data2 });
-    return data2;
-
-  } finally {
-    // 5) IMPORTANT: reset force flag after one attempt
-    forceAiRefresh = false;
-  }
-}
-
 
     function normalizeChartPrices(prices) {
       const labels = [];
@@ -1389,8 +1440,7 @@ function renderProbabilisticScenarioList(scenarios) {
       savePrefs(tf, days);
 
       try {
-        const aiRes = await fetchAiPredictionForCoin(coin.id, { days, timeframe: tf });
-        const ai = aiRes.data;
+        const ai = await fetchAiPredictionForCoin(coin.id, { days, timeframe: tf });
 
         const last = safeNum(ai?.last_price);
         const predicted = safeNum(ai?.predicted_price);
@@ -1420,7 +1470,6 @@ function renderProbabilisticScenarioList(scenarios) {
         // If 429, show countdown and enable retry
         const status = e && e.status;
         if (status === 429) {
-          // Try to read Retry-After; if missing, use a safe default.
           let retryAfter = 15;
           try {
             const ra = e.headers && e.headers.get && e.headers.get("Retry-After");
@@ -1448,6 +1497,7 @@ function renderProbabilisticScenarioList(scenarios) {
       if (!selectedCoinId) return;
       const coin = coinsRaw.find((c) => c.id === selectedCoinId);
       if (!coin) return;
+      forceAiRefresh = true; // important: bypass AI cache once
       await handleCoinClick(selectedCoinId);
     }
 
@@ -1531,7 +1581,6 @@ function renderProbabilisticScenarioList(scenarios) {
 
     btnClearCache.addEventListener("click", () => {
       clearAllCaches();
-      aiHint.textContent = "Cache cleared.";
     });
 
     tfSelect.addEventListener("change", () => {
