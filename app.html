@@ -1188,21 +1188,44 @@
       ];
     }
 
-    function renderProbabilisticScenarioList(scenarios) {
-      scenarioListEl.innerHTML = "";
+   <script>
+function renderProbabilisticScenarioList(scenarios) {
+  scenarioListEl.innerHTML = "";
 
-      for (const s of scenarios) {
-        const li = document.createElement("li");
-        const fromTxt = (s.from == null) ? "—" : formatPrice(s.from);
-        const toTxt   = (s.to == null) ? "—" : formatPrice(s.to);
-        const probTxt = Number.isFinite(Number(s.prob)) ? Number(s.prob).toFixed(0) : "—";
-        const labelTxt = (s && typeof s.label === "string") ? s.label : "Scenario";
+  if (!Array.isArray(scenarios) || scenarios.length === 0) {
+    scenarioListEl.innerHTML = "<li>No scenarios available.</li>";
+    return;
+  }
 
-        // Exact worldwide format
-        li.innerHTML = `<div><strong>${labelTxt} (${probTxt}%)</strong> from <strong>${fromTxt}</strong> → <strong>${toTxt}</strong></div>`;
-        scenarioListEl.appendChild(li);
-      }
-    }
+  for (const s of scenarios) {
+    const li = document.createElement("li");
+
+    const label =
+      (s && typeof s.label === "string" && s.label.trim()) ? s.label : "Scenario";
+
+    const prob =
+      Number.isFinite(Number(s.prob)) ? `${Number(s.prob).toFixed(0)}%` : "—";
+
+    const fromTxt =
+      (s.from == null) ? "—" : formatPrice(s.from);
+
+    const toTxt =
+      (s.to == null) ? "—" : formatPrice(s.to);
+
+    li.innerHTML = `
+      <div>
+        <strong>${label} (${prob})</strong>
+        &nbsp;from&nbsp;
+        <strong>${fromTxt}</strong>
+        &nbsp;→&nbsp;
+        <strong>${toTxt}</strong>
+      </div>
+    `;
+
+    scenarioListEl.appendChild(li);
+  }
+}
+</script>
 
     // ==========================================================
     // AI: rate-limit UX (429) + retry
