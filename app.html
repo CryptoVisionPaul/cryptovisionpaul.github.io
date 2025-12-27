@@ -675,6 +675,7 @@
     let selectedCoinId = null;
     let aiRetryTimer = null;
     let aiRetryRemainingSec = 0;
+    let forceAiRefresh = false;
 
     // ==========================================================
     // UTIL
@@ -1258,55 +1259,58 @@ function renderProbabilisticScenarioList(scenarios) {
       }, 1000);
     }
 
-    async function fetchAiPredictionForCoin(coinId, { days, timeframe } = {}) {
-      const url = buildAiUrl({ coinId, days, timeframe });
-      return await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
+   async function fetchAiPredictionForCoin(coinId) {
+  const now = Date.now();
+
+  // 1) Use cache only if NOT forcing refresh
+  if (!forceAiRefresh) {
+    const cached = aiCache.get(coinId);
+    if (cached && (now - cached.ts) <= AI_CACHE_TTL_MS) {
+      return cached.data;
+    }
+  }
+
+  const url = buildAiUrl({ coinId, days: 90, timeframe: "1d" });
+
+  try {
+    // 2) Normal backend call
+    const data = await fetchJsonWithRetry(url, {
+      timeoutMs: 45000,
+      retries: 0,
+      mode: "cors"
+    });
+
+    aiCache.set(coinId, { ts: now, data });
+    return data;
+
+  } catch (err) {
+    const errMsg = String(err || "");
+    const is429 = errMsg.includes("429");
+
+    // 3) If throttled, return ANY cached data (even stale) → best UX
+    const cached = aiCache.get(coinId);
+    if (is429 && cached && cached.data) {
+      return cached.data;
     }
 
-    // ==========================================================
-    // CHART: backend-only (no CoinGecko direct fallback due to CORS + plan limits)
-    // ==========================================================
-    async function loadChartForCoin(coin) {
-      const id = coin.id;
+    // 4) Small backoff + single retry (Render wake / transient issue)
+    await new Promise(r => setTimeout(r, 1200));
 
-      // cached in memory
-      let chartData = chartCache.get(id);
-      if (!chartData) {
-        const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 30, interval: "daily" });
-        const res = await fetchJsonDetailed(backendUrl, { timeoutMs: 20000, retries: 0, mode: "cors" });
-        const prices = Array.isArray(res?.data?.prices) ? res.data.prices : [];
-        if (!prices.length) throw new Error("Backend chart returned empty prices.");
-        chartData = normalizeChartPrices(prices);
-        chartCache.set(id, chartData);
-      }
+    const data2 = await fetchJsonWithRetry(url, {
+      timeoutMs: 45000,
+      retries: 0,
+      mode: "cors"
+    });
 
-      const canvas = document.getElementById("priceChart");
-      const ctx = canvas.getContext("2d");
-      if (priceChart) priceChart.destroy();
+    aiCache.set(coinId, { ts: Date.now(), data: data2 });
+    return data2;
 
-      priceChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: chartData.labels,
-          datasets: [{
-            label: `${coin.name} – price (USD)`,
-            data: chartData.values,
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.25
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
-          scales: {
-            x: { ticks: { color: "#9ca3af", maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }, grid: { display: false } },
-            y: { ticks: { color: "#9ca3af", callback: (v) => "$" + Number(v).toFixed(0) }, grid: { color: "rgba(55, 65, 81, 0.6)" } }
-          }
-        }
-      });
-    }
+  } finally {
+    // 5) IMPORTANT: reset force flag after one attempt
+    forceAiRefresh = false;
+  }
+}
+
 
     function normalizeChartPrices(prices) {
       const labels = [];
