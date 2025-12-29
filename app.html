@@ -420,46 +420,97 @@
       </div>
     </section>
 
-    <section class="main-grid">
-      <article class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Watched coins</div>
-            <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
-          </div>
-          <span class="badge gray">USD</span>
-        </div>
+   <section class="main-grid">
 
-        <div class="toolbar">
-          <div class="search-box">
-            <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
-          </div>
-          <select id="sortSelect" class="select-small">
-            <option value="rank">Sort: Market Cap</option>
-            <option value="change24">Sort: Biggest 24h moves</option>
-            <option value="change1h">Sort: Biggest 1h moves</option>
-            <option value="change7d">Sort: Biggest 7d moves</option>
-          </select>
-          <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
-        </div>
+  <!-- LEFT COLUMN -->
+  <div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Coin</th>
-                <th>Price</th>
-                <th>1h</th>
-                <th>24h</th>
-                <th>7d</th>
-                <th>Market Cap</th>
-              </tr>
-            </thead>
-            <tbody id="coinsBody"></tbody>
-          </table>
+    <!-- Market Snapshot (NEW) -->
+    <article class="card" style="margin-bottom:12px;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Market Snapshot</div>
+          <div class="card-subtitle">Top movers + market breadth (based on Top 50).</div>
         </div>
-      </article>
+        <span class="badge blue">Live</span>
+      </div>
+
+      <div class="metric-grid" style="margin-bottom:12px;">
+        <div class="metric-item">
+          <div class="metric-label">Market breadth</div>
+          <div class="metric-value" id="breadthValue">—</div>
+          <div class="metric-note">Green vs red coins (24h).</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Market pulse</div>
+          <div class="metric-value" id="pulseValue">—</div>
+          <div class="metric-note">Avg 24h change (Top 50).</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+        <div>
+          <div class="small-label">Top gainers (24h)</div>
+          <ul class="ai-list" id="gainersList" style="margin-top:6px;"></ul>
+        </div>
+        <div>
+          <div class="small-label">Top losers (24h)</div>
+          <ul class="ai-list" id="losersList" style="margin-top:6px;"></ul>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:10px;">
+        Tip: click a coin here to open it in the “Selected coin analysis” panel.
+      </div>
+    </article>
+
+    <!-- Watched coins table (existing) -->
+    <article class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Watched coins</div>
+          <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
+        </div>
+        <span class="badge gray">USD</span>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
+        </div>
+        <select id="sortSelect" class="select-small">
+          <option value="rank">Sort: Market Cap</option>
+          <option value="change24">Sort: Biggest 24h moves</option>
+          <option value="change1h">Sort: Biggest 1h moves</option>
+          <option value="change7d">Sort: Biggest 7d moves</option>
+        </select>
+        <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coin</th>
+              <th>Price</th>
+              <th>1h</th>
+              <th>24h</th>
+              <th>7d</th>
+              <th>Market Cap</th>
+            </tr>
+          </thead>
+          <tbody id="coinsBody"></tbody>
+        </table>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- RIGHT COLUMN (unchanged) -->
+  <article>
+    <!-- aici rămâne exact cum ai acum: Daily Insight, News, Selected coin analysis etc -->
+
 
       <article>
         <div class="card" style="margin-bottom:12px;">
