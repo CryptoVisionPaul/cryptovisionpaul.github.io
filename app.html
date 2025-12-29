@@ -471,18 +471,20 @@
           </div>
           <div class="ai-text" id="dailyInsight">Loading market analysis...</div>
         </div>
-        <div class="card" style="margin-bottom:12px;">
-  <div class="card-header">
-    <div>
-      <div class="card-title">CryptoVision – Crypto News</div>
-      <div class="card-subtitle">Latest headlines (via backend RSS aggregator).</div>
-    </div>
-    <button id="newsRefreshBtn" class="btn-small secondary">Refresh News</button>
-  </div>
 
-  <div class="ai-text" id="newsStatus">Loading news…</div>
-  <ul class="ai-list" id="newsList" style="margin-top:10px;"></ul>
-</div>
+        <!-- NEWS CARD (UI already present) -->
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">CryptoVision – Crypto News</div>
+              <div class="card-subtitle">Latest headlines (via backend RSS aggregator).</div>
+            </div>
+            <button id="newsRefreshBtn" class="btn-small secondary">Refresh News</button>
+          </div>
+
+          <div class="ai-text" id="newsStatus">Loading news…</div>
+          <ul class="ai-list" id="newsList" style="margin-top:10px;"></ul>
+        </div>
 
         <div class="card">
           <div class="card-header">
@@ -521,7 +523,7 @@
               <option value="365">History: 365d</option>
             </select>
             <button id="btnRetryAi" class="btn-small secondary" disabled>Retry AI</button>
-            <button id="btnClearCache" class="btn-small danger" title="Clears local cache (markets + charts + ai)">Clear cache</button>
+            <button id="btnClearCache" class="btn-small danger" title="Clears local cache (markets + charts + ai + news)">Clear cache</button>
           </div>
           <div class="hint" id="aiHint">
             Tip: if AI is rate-limited, the app will show a clear retry countdown. Scenarios stay in English for worldwide use.
@@ -625,6 +627,12 @@
     // AI cache (browser)
     const AI_CACHE_TTL_MS = 120_000; // 2 minutes
 
+    // NEWS (backend) + cache
+    const NEWS_ENDPOINT = "/news";                // backend route must exist
+    const NEWS_CACHE_TTL_MS = 5 * 60_000;         // 5 minutes
+    const NEWS_REFRESH_MIN_INTERVAL_MS = 30_000;  // protect backend from spam
+    const STORAGE_KEY_NEWS = "cv_news_cache_v1";
+
     // Endpoints
     const AI_ENDPOINT = "/ai/predict";
     const CHART_ENDPOINT = "/chart";
@@ -665,6 +673,11 @@
     const btnClearCache = document.getElementById("btnClearCache");
     const aiHint = document.getElementById("aiHint");
 
+    // NEWS DOM
+    const newsListEl = document.getElementById("newsList");
+    const newsStatusEl = document.getElementById("newsStatus");
+    const newsRefreshBtn = document.getElementById("newsRefreshBtn");
+
     // ==========================================================
     // STATE
     // ==========================================================
@@ -690,6 +703,9 @@
     let aiRetryTimer = null;
     let aiRetryRemainingSec = 0;
     let forceAiRefresh = false;
+
+    // News state
+    let lastNewsRefreshTs = 0;
 
     // ==========================================================
     // UTIL
@@ -746,6 +762,16 @@
       sourceText.textContent = msg;
     }
 
+    function escapeHtml(s) {
+      const str = String(s ?? "");
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function showErrorInTable(message) {
       coinsBody.innerHTML = "";
       const tr = document.createElement("tr");
@@ -794,7 +820,7 @@
     }
 
     // ==========================================================
-    // CACHE (markets + charts + ai)
+    // CACHE (markets + charts + ai + news)
     // ==========================================================
     function loadMarketsCache() {
       try {
@@ -818,14 +844,43 @@
       return (Date.now() - ts) <= MARKETS_CACHE_TTL_MS;
     }
 
+    // NEWS cache helpers
+    function loadNewsCache() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_NEWS);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.items) || typeof parsed.ts !== "number") return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveNewsCache(items) {
+      try {
+        localStorage.setItem(STORAGE_KEY_NEWS, JSON.stringify({ ts: Date.now(), items }));
+      } catch {}
+    }
+
+    function isNewsCacheFresh(ts) {
+      return (Date.now() - ts) <= NEWS_CACHE_TTL_MS;
+    }
+
     function clearAllCaches() {
       try { localStorage.removeItem(STORAGE_KEY_MARKETS); } catch {}
+      try { localStorage.removeItem(STORAGE_KEY_NEWS); } catch {}
+
       chartCache.clear();
       aiCache.clear();
 
       coinCommentEl.textContent = "Cache cleared. Select a coin again.";
       scenarioListEl.innerHTML = "<li>—</li>";
       aiHint.textContent = "Cache cleared.";
+
+      // Reset news UI too
+      if (newsStatusEl) newsStatusEl.textContent = "News cache cleared. Click Refresh News.";
+      if (newsListEl) newsListEl.innerHTML = "";
 
       if (priceChart) { priceChart.destroy(); priceChart = null; }
     }
@@ -938,6 +993,129 @@
         interval: String(interval)
       });
       return `${base}${CHART_ENDPOINT}?${qs.toString()}`;
+    }
+
+    function buildNewsUrl({ limit = 12 } = {}) {
+      const base = BACKEND_BASE_URL.replace(/\/$/, "");
+      const qs = new URLSearchParams({ limit: String(limit) });
+      return `${base}${NEWS_ENDPOINT}?${qs.toString()}`;
+    }
+
+    // ==========================================================
+    // NEWS: loader + render (backend)
+    // Expected backend formats supported:
+    //  A) { items: [ { title, url, source, published_at } ] }
+    //  B) [ { title, url, source, published_at } ]
+    // ==========================================================
+    function normalizeNewsPayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && Array.isArray(payload.items)) return payload.items;
+      return [];
+    }
+
+    function renderNewsItems(items) {
+      newsListEl.innerHTML = "";
+
+      if (!items || !items.length) {
+        newsStatusEl.textContent = "No news items available right now.";
+        return;
+      }
+
+      const max = Math.min(items.length, 20);
+      for (let i = 0; i < max; i++) {
+        const it = items[i] || {};
+        const title = String(it.title || it.headline || "Untitled");
+        const url = String(it.url || it.link || "");
+        const source = String(it.source || it.publisher || "");
+        const published = String(it.published_at || it.published || it.date || "");
+
+        const li = document.createElement("li");
+
+        const safeTitle = escapeHtml(title);
+        const safeSource = escapeHtml(source);
+        const safePublished = escapeHtml(published);
+
+        const meta = [safeSource, safePublished].filter(Boolean).join(" • ");
+
+        if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+          li.innerHTML = `
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="color:#bfdbfe; text-decoration:none;">
+              <strong>${safeTitle}</strong>
+            </a>
+            ${meta ? `<div style="margin-top:2px; color:#9ca3af; font-size:11px;">${meta}</div>` : ""}
+          `;
+        } else {
+          li.innerHTML = `
+            <strong>${safeTitle}</strong>
+            ${meta ? `<div style="margin-top:2px; color:#9ca3af; font-size:11px;">${meta}</div>` : ""}
+          `;
+        }
+
+        newsListEl.appendChild(li);
+      }
+
+      newsStatusEl.textContent = `Showing ${max} headlines.`;
+    }
+
+    async function loadNews({ force = false } = {}) {
+      if (!newsListEl || !newsStatusEl || !newsRefreshBtn) return;
+
+      // 1) Use cache if fresh and not forced
+      if (!force) {
+        const cached = loadNewsCache();
+        if (cached && isNewsCacheFresh(cached.ts)) {
+          renderNewsItems(cached.items);
+          const ageSec = Math.max(0, Math.floor((Date.now() - cached.ts) / 1000));
+          newsStatusEl.textContent = `News loaded from cache (${ageSec}s ago).`;
+          return;
+        }
+      }
+
+      // 2) Front-end refresh protection
+      const now = Date.now();
+      if (!force) {
+        const elapsed = now - lastNewsRefreshTs;
+        if (elapsed < NEWS_REFRESH_MIN_INTERVAL_MS) {
+          const remaining = Math.ceil((NEWS_REFRESH_MIN_INTERVAL_MS - elapsed) / 1000);
+          newsStatusEl.textContent = `Please wait ${remaining}s before refreshing news again.`;
+          return;
+        }
+      }
+      lastNewsRefreshTs = now;
+
+      // 3) Fetch from backend
+      newsRefreshBtn.disabled = true;
+      const oldBtnText = newsRefreshBtn.textContent;
+      newsRefreshBtn.textContent = "Loading…";
+
+      newsStatusEl.textContent = "Loading news from backend…";
+
+      try {
+        const url = buildNewsUrl({ limit: 12 });
+        const res = await fetchJsonDetailed(url, { timeoutMs: 20000, retries: 1, retryDelayMs: 1100, mode: "cors" });
+        const items = normalizeNewsPayload(res.data);
+
+        // If backend returns something unexpected, treat as empty (but not fatal)
+        const normalized = Array.isArray(items) ? items : [];
+        saveNewsCache(normalized);
+        renderNewsItems(normalized);
+
+      } catch (e) {
+        console.error("[News] failed:", e);
+
+        // Fallback to stale cache if exists
+        const cached = loadNewsCache();
+        if (cached && Array.isArray(cached.items) && cached.items.length) {
+          renderNewsItems(cached.items);
+          newsStatusEl.textContent = "News backend unavailable. Showing cached headlines.";
+        } else {
+          newsListEl.innerHTML = "";
+          newsStatusEl.textContent = "News backend unavailable. Please try again later.";
+        }
+      } finally {
+        newsRefreshBtn.disabled = false;
+        newsRefreshBtn.textContent = oldBtnText;
+      }
     }
 
     // ==========================================================
@@ -1163,10 +1341,6 @@
 
     // ==========================================================
     // AI: scenarios (worldwide)
-    // Rules:
-    // - never print from==to (avoid fake "movement")
-    // - minimum meaningful move: 0.5% (0.005)
-    // - if backend interval is too tight to respect min move, show "—" for that target
     // ==========================================================
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
       const lastN = safeNum(last);
@@ -1205,11 +1379,8 @@
       const rareLabel = mainIsBull ? "Bullish breakout" : "Bearish breakdown";
 
       const predClamped = Math.min(highN, Math.max(lowN, predN));
-
-      // If interval cannot support a minimum move, we prefer "—" rather than from==to
       const intervalCanSupportMove = widthAbs >= (minMoveAbs * 0.9);
 
-      // MAIN target
       let mainTo = null;
       if (intervalCanSupportMove) {
         if (mainIsBull) {
@@ -1223,25 +1394,21 @@
         }
       }
 
-      // ALT target
       let altTo = null;
       if (intervalCanSupportMove) {
         if (mainIsBull) {
-          // bearish alt
           const candidate = Math.min(predClamped, lastN - minMoveAbs);
           altTo = Math.max(lowN, candidate);
           if (!(altTo < lastN)) altTo = null;
         } else {
-          // bullish alt
           const candidate = Math.max(predClamped, lastN + minMoveAbs);
           altTo = Math.min(highN, candidate);
           if (!(altTo > lastN)) altTo = null;
         }
       }
 
-      // RARE always outside interval (small margin)
-      const OUT_REL = 0.006; // 0.6%
-      const OUT_MIN = 0.002; // 0.2%
+      const OUT_REL = 0.006;
+      const OUT_MIN = 0.002;
       let rareTo;
       if (mainIsBull) {
         rareTo = Math.max(highN * (1 + OUT_REL), highN * (1 + OUT_MIN));
@@ -1321,7 +1488,7 @@
       if (!forceAiRefresh) {
         const cached = aiCache.get(coinId);
         if (cached && (now - cached.ts) <= AI_CACHE_TTL_MS) {
-          return cached.data; // returns AI JSON object
+          return cached.data;
         }
       }
 
@@ -1339,7 +1506,7 @@
 
         const cached = aiCache.get(coinId);
         if (status === 429 && cached && cached.data) {
-          return cached.data; // stale-but-usable
+          return cached.data;
         }
 
         await new Promise(r => setTimeout(r, 1200));
@@ -1418,7 +1585,7 @@
     function normalizeChartPrices(prices) {
       const labels = [];
       const values = [];
-      const step = Math.max(1, Math.floor(prices.length / 80)); // downsample
+      const step = Math.max(1, Math.floor(prices.length / 80));
 
       for (let i = 0; i < prices.length; i += step) {
         const row = prices[i];
@@ -1471,7 +1638,6 @@
       pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
       selectedPillsEl.appendChild(pill7d);
 
-      // Chart
       try {
         coinCommentEl.textContent = "Loading chart from backend…";
         await loadChartForCoin(coin);
@@ -1481,7 +1647,6 @@
         if (priceChart) { priceChart.destroy(); priceChart = null; }
       }
 
-      // AI prediction + scenarios
       metricBiasEl.textContent = "Loading AI…";
       coinCommentEl.textContent = "Fetching AI prediction from backend…";
       scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
@@ -1543,10 +1708,9 @@
       }
     }
 
-    // Retry AI button
     async function retryAiForSelectedCoin() {
       if (!selectedCoinId) return;
-      forceAiRefresh = true; // bypass cache once
+      forceAiRefresh = true;
       await handleCoinClick(selectedCoinId);
     }
 
@@ -1618,6 +1782,11 @@
       await loadMarkets({ reason: "manual" });
     });
 
+    // NEWS refresh button
+    newsRefreshBtn.addEventListener("click", async () => {
+      await loadNews({ force: true });
+    });
+
     btnTestBackend.addEventListener("click", handleAiBackendTest);
     btnHealth.addEventListener("click", testHealth);
 
@@ -1657,7 +1826,9 @@
       if (prefs && prefs.tf) tfSelect.value = prefs.tf;
       if (prefs && Number.isFinite(Number(prefs.days))) daysSelect.value = String(prefs.days);
 
+      // Load markets + news
       loadMarkets({ reason: "auto" });
+      loadNews({ force: false });
     });
   </script>
 </body>
