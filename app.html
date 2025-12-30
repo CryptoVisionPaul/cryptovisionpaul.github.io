@@ -66,6 +66,32 @@
       align-items:center; margin-bottom:18px; flex-wrap:wrap;
     }
     .logo-wrap{display:flex; align-items:center; gap:14px}
+    .premium-logo{
+  position: relative;
+  text-decoration: none;
+}
+
+.premium-logo img{
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.logo-upgrade{
+  position: absolute;
+  bottom: -8px;
+  right: -4px;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(37,99,235,.85);
+  color: #e0f2fe;
+  border: 1px solid rgba(96,165,250,.8);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  pointer-events: none;
+}
+
 
     /* ==========================================================
        LOGO (image-based)
@@ -443,10 +469,11 @@
     <header class="top-bar">
       <div class="logo-wrap">
         <!-- LOGO IMAGE: upload at assets/logo.png -->
-        <div class="logo-badge" title="CryptoVision">
-          <img src="assets/logo.png" alt="CryptoVision logo" onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';">
-        </div>
-
+        <a href="premium.html" class="logo-badge premium-logo" title="Upgrade to Premium">
+  <img src="assets/logo.png" alt="CryptoVision logo"
+       onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';">
+  <span class="logo-upgrade">Upgrade to Premium</span>
+</a>
         <div class="title-block">
           <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
           <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
