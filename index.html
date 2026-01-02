@@ -1,196 +1,410 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoVision – AI Crypto Insights</title>
-    <meta name="description" content="CryptoVision is an independent project that uses data and AI-based analysis to help users better understand the cryptocurrency market.">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #050816;
-            color: #f5f5f5;
-        }
-        .wrapper {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 24px 16px 40px;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        .logo {
-            font-weight: 700;
-            font-size: 1.4rem;
-        }
-        nav a {
-            color: #c7d2fe;
-            text-decoration: none;
-            margin-left: 12px;
-            font-size: 0.95rem;
-        }
-        nav a:hover {
-            text-decoration: underline;
-        }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
-        }
-        h2 {
-            margin-top: 24px;
-            font-size: 1.3rem;
-        }
-        p {
-            line-height: 1.6;
-        }
-        ul {
-            padding-left: 18px;
-            line-height: 1.6;
-        }
-        .hero {
-            background: #0b1020;
-            border-radius: 12px;
-            padding: 20px 18px;
-            margin-bottom: 20px;
-            border: 1px solid #1e293b;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            background: #1d4ed8;
-            color: #e5e7eb;
-            margin-bottom: 8px;
-        }
-        .primary-button {
-            display: inline-block;
-            margin-top: 14px;
-            padding: 10px 18px;
-            border-radius: 999px;
-            border: none;
-            background: #22c55e;
-            color: #022c22;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-decoration: none;
-        }
-        .primary-button:hover {
-            background: #16a34a;
-        }
-        footer {
-            margin-top: 32px;
-            padding-top: 16px;
-            border-top: 1px solid #1f2937;
-            font-size: 0.85rem;
-            color: #9ca3af;
-        }
-        footer a {
-            color: #9ca3af;
-            text-decoration: none;
-            margin-right: 8px;
-        }
-        footer a:hover {
-            text-decoration: underline;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CryptoVision – Live (No Backend)</title>
+  <meta name="theme-color" content="#020617" />
+  <style>
+    :root{
+      --bg:#020617; --card:rgba(15,23,42,.82); --border:rgba(148,163,184,.22);
+      --text:#e5e7eb; --muted:#9ca3af; --pos:#22c55e; --neg:#f97373; --link:#93c5fd;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      color:var(--text); background:
+        linear-gradient(rgba(2,6,23,.70),rgba(2,6,23,.70)),
+        radial-gradient(circle at 20% 10%, rgba(59,130,246,.22), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(34,197,94,.14), transparent 40%),
+        var(--bg);
+      min-height:100vh;
+      padding:18px;
+    }
+    .wrap{max-width:1200px;margin:0 auto}
+    header{
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    .h1{font-weight:800; letter-spacing:.02em; font-size:20px}
+    .sub{color:var(--muted); font-size:12px; margin-top:4px; line-height:1.4}
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      border:1px solid var(--border); background:rgba(15,23,42,.55);
+      padding:6px 10px; border-radius:999px; font-size:12px; color:var(--muted);
+      backdrop-filter: blur(10px);
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:#60a5fa; box-shadow:0 0 0 4px rgba(96,165,250,.16)}
+    .grid{display:grid; grid-template-columns: 1.4fr .9fr; gap:14px}
+    @media(max-width:980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:18px;
+      padding:12px; box-shadow:0 18px 60px rgba(0,0,0,.45);
+      backdrop-filter: blur(12px);
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input,select,button{
+      border-radius:999px; border:1px solid var(--border);
+      background:rgba(2,6,23,.85); color:var(--text);
+      padding:8px 10px; font-size:12px; outline:none;
+    }
+    input{min-width:220px; flex:1}
+    button{cursor:pointer; font-weight:700}
+    button:hover{filter:brightness(1.06)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+    .tableWrap{
+      margin-top:10px; overflow:auto; border-radius:14px; border:1px solid rgba(31,41,55,.8);
+      background:rgba(2,6,23,.55);
+      max-height:460px;
+    }
+    table{width:100%; border-collapse:collapse; font-size:12px}
+    thead{position:sticky; top:0; background:rgba(2,6,23,.92)}
+    th,td{padding:8px 10px; border-bottom:1px solid rgba(31,41,55,.8); white-space:nowrap}
+    th{color:var(--muted); text-transform:uppercase; font-size:10px; letter-spacing:.08em}
+    td:first-child,th:first-child{text-align:left}
+    td:nth-child(2),th:nth-child(2){text-align:left}
+    td{text-align:right}
+    tr:hover{background:rgba(59,130,246,.12)}
+    .coin{display:flex; gap:8px; align-items:center}
+    .sym{font-size:10px;color:var(--muted); border:1px solid rgba(55,65,81,.9); padding:1px 6px; border-radius:999px}
+    .pos{color:var(--pos)} .neg{color:var(--neg)}
+    .title{font-weight:800; font-size:13px}
+    .muted{color:var(--muted); font-size:12px; line-height:1.45}
+    .big{font-size:20px; font-weight:900}
+    .kv{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+    .k{padding:10px; border-radius:14px; border:1px solid rgba(30,64,175,.55); background:rgba(2,6,23,.45)}
+    .k .l{color:var(--muted); font-size:11px}
+    .k .v{font-weight:900; margin-top:3px}
+    canvas{width:100%; height:220px; background:rgba(2,6,23,.45); border:1px solid rgba(30,64,175,.55); border-radius:14px}
+    .hint{margin-top:10px; font-size:11px; color:var(--muted)}
+    a{color:var(--link); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .err{color:#fecaca}
+  </style>
 </head>
 <body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="h1">CryptoVision – Live Markets</div>
+      <div class="sub">Variantă stabilă: doar CoinGecko (fără backend, fără Chart.js). Click pe coin pentru detalii + chart.</div>
+    </div>
+    <div class="pill"><span class="dot"></span><span id="statusText">Inițializare…</span></div>
+  </header>
 
-<div class="wrapper">
-    <header>
-        <div class="logo">CryptoVision</div>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="app.html">Launch App</a>
-            <a href="premium.html">Premium</a>
-            <a href="about.html">About</a>
-            <a href="privacy.html">Privacy</a>
-            <a href="terms.html">Terms</a>
-            <a href="contact.html">Contact</a>
-        </nav>
-    </header>
+  <div class="grid">
+    <!-- Left: list -->
+    <section class="card">
+      <div class="row">
+        <input id="q" placeholder="Caută coin (bitcoin, eth, sol…)" />
+        <select id="sort">
+          <option value="mcap">Sort: Market Cap</option>
+          <option value="chg24">Sort: Biggest 24h moves</option>
+          <option value="chg1h">Sort: Biggest 1h moves</option>
+          <option value="chg7d">Sort: Biggest 7d moves</option>
+        </select>
+        <button id="btnReload">Reload</button>
+      </div>
 
-    <section class="hero">
-        <div class="badge">AI Crypto Insights</div>
-        <h1>AI-assisted crypto analysis for curious traders and builders.</h1>
-        <p>
-            CryptoVision is an independent project that uses market data, technical indicators and AI-inspired logic
-            to generate structured insights about the cryptocurrency market. It is designed for people who want
-            to better understand trends – not for blind signals or get-rich-quick promises.
-        </p>
-        <a class="primary-button" href="app.html">Open CryptoVision App</a>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coin</th>
+              <th>Price</th>
+              <th>1h</th>
+              <th>24h</th>
+              <th>7d</th>
+              <th>MCap</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="7" class="muted" style="text-align:left">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hint">
+        Dacă CoinGecko e rate-limited (429), așteaptă 30–60 sec și apasă Reload.
+      </div>
     </section>
 
-    <section>
-        <h2>What CryptoVision aims to provide</h2>
-        <p>The long–term goal of CryptoVision is to become a complete toolkit built around:</p>
-        <ul>
-            <li>Live prices for major cryptocurrencies</li>
-            <li>Multi-timeframe analysis (30M, 1H, 4H, 1D)</li>
-            <li>Generated insights based on real market data</li>
-            <li>AI-based models for pseudo-signals and trend detection</li>
-            <li>A clean and fast interface that runs directly in the browser</li>
-        </ul>
-    </section>
+    <!-- Right: selected -->
+    <aside class="card">
+      <div class="title">Coin selectat</div>
+      <div class="muted" id="selName">Nimic selectat.</div>
+      <div class="big" id="selPrice">—</div>
 
-    <section>
-        <h2>Free vs. future Premium version</h2>
-        <p>
-            CryptoVision is currently available as a free web app, with future plans for:
-        </p>
-        <ul>
-            <li>A free tier supported by ads (Google AdSense), focused on informational usage.</li>
-            <li>A premium subscription with more advanced AI models, extra timeframes and ad-free experience.</li>
-        </ul>
-        <p>
-            You can already explore the app in its current prototype form, and later choose whether you want to stay on
-            the free version or upgrade to premium once it becomes available.
-            For an overview of the planned tiers, visit the <a href="premium.html">Premium page</a>.
-        </p>
-    </section>
+      <div class="kv">
+        <div class="k"><div class="l">24h</div><div class="v" id="sel24">—</div></div>
+        <div class="k"><div class="l">Market Cap</div><div class="v" id="selMcap">—</div></div>
+      </div>
 
-    <section>
-        <h2>Disclaimer – no financial advice</h2>
-        <p>
-            CryptoVision does <strong>not</strong> offer financial advice and does not guarantee profits.
-            All current and future features are for informational and educational purposes only.
-            Any trading or investment decision belongs entirely to the user.
-        </p>
-    </section>
+      <div style="margin-top:10px">
+        <div class="muted">Chart (30 zile)</div>
+        <canvas id="cv" width="900" height="260"></canvas>
+      </div>
 
-    <section>
-        <h2>About the project</h2>
-        <p>
-            The project is built step by step, focusing on transparency and long–term development.
-            The app currently runs as a prototype on GitHub Pages, with future upgrades planned
-            for AI models, backend infrastructure and automated signals.
-        </p>
-        <p>
-            If you want to know more about the vision behind CryptoVision, visit the
-            <a href="about.html">About page</a> or contact us directly at
-            <strong>covacipaul1983@gmail.com</strong>.
-        </p>
-    </section>
-
-    <footer>
-        <p>© 2025 CryptoVision. All rights reserved.</p>
-        <p>
-            <a href="index.html">Home</a> •
-            <a href="app.html">Launch App</a> •
-            <a href="premium.html">Premium</a> •
-            <a href="about.html">About</a> •
-            <a href="privacy.html">Privacy Policy</a> •
-            <a href="terms.html">Terms &amp; Conditions</a> •
-            <a href="contact.html">Contact</a>
-        </p>
-    </footer>
+      <div class="hint" id="selHint">
+        Sursa date: CoinGecko. Link: <a href="https://www.coingecko.com" target="_blank" rel="noopener">coingecko.com</a>
+      </div>
+      <div class="hint err" id="errBox"></div>
+    </aside>
+  </div>
 </div>
 
+<script>
+"use strict";
+
+const API = "https://api.coingecko.com/api/v3";
+const $ = (id)=>document.getElementById(id);
+
+const statusText = $("statusText");
+const tbody = $("tbody");
+const q = $("q");
+const sort = $("sort");
+const btnReload = $("btnReload");
+
+const selName = $("selName");
+const selPrice = $("selPrice");
+const sel24 = $("sel24");
+const selMcap = $("selMcap");
+const errBox = $("errBox");
+
+const canvas = $("cv");
+const ctx = canvas.getContext("2d");
+
+let coins = [];
+let filtered = [];
+
+function fmtPrice(v){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return "—";
+  if(n >= 1000) return "$" + n.toLocaleString("en-US",{maximumFractionDigits:0});
+  if(n >= 1) return "$" + n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(n >= 0.01) return "$" + n.toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:4});
+  return "$" + n.toLocaleString("en-US",{minimumFractionDigits:6,maximumFractionDigits:8});
+}
+function fmtPct(v){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return "—";
+  const s = n>0 ? "+" : "";
+  return s + n.toFixed(2) + "%";
+}
+function fmtAbbr(v){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return "—";
+  if(n>=1e12) return (n/1e12).toFixed(2)+"T";
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(2)+"K";
+  return n.toFixed(0);
+}
+function esc(s){
+  return String(s??"")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+async function fetchJson(url, timeoutMs=15000){
+  const c = new AbortController();
+  const t = setTimeout(()=>c.abort(), timeoutMs);
+  try{
+    const r = await fetch(url, {method:"GET", cache:"no-store", signal:c.signal, headers:{Accept:"application/json"}});
+    if(!r.ok){
+      const text = await r.text().catch(()=> "");
+      throw new Error("HTTP "+r.status+" "+r.statusText+" "+text.slice(0,200));
+    }
+    return await r.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function applySort(){
+  const key = sort.value;
+  filtered.sort((a,b)=>{
+    if(key==="mcap") return (a.market_cap_rank??9999)-(b.market_cap_rank??9999);
+    if(key==="chg24") return Math.abs(b.price_change_percentage_24h||0)-Math.abs(a.price_change_percentage_24h||0);
+    if(key==="chg1h") return Math.abs(b.price_change_percentage_1h_in_currency||0)-Math.abs(a.price_change_percentage_1h_in_currency||0);
+    if(key==="chg7d") return Math.abs(b.price_change_percentage_7d_in_currency||0)-Math.abs(a.price_change_percentage_7d_in_currency||0);
+    return 0;
+  });
+}
+
+function render(){
+  tbody.innerHTML = "";
+  if(!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:left">No results.</td></tr>`;
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for(const c of filtered){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="text-align:left;color:#9ca3af">${c.market_cap_rank ?? "?"}</td>
+      <td style="text-align:left">
+        <div class="coin"><span>${esc(c.name)}</span><span class="sym">${esc(String(c.symbol||"").toUpperCase())}</span></div>
+      </td>
+      <td>${fmtPrice(c.current_price)}</td>
+      <td class="${(c.price_change_percentage_1h_in_currency||0)>0?'pos':(c.price_change_percentage_1h_in_currency||0)<0?'neg':''}">
+        ${fmtPct(c.price_change_percentage_1h_in_currency)}
+      </td>
+      <td class="${(c.price_change_percentage_24h||0)>0?'pos':(c.price_change_percentage_24h||0)<0?'neg':''}">
+        ${fmtPct(c.price_change_percentage_24h)}
+      </td>
+      <td class="${(c.price_change_percentage_7d_in_currency||0)>0?'pos':(c.price_change_percentage_7d_in_currency||0)<0?'neg':''}">
+        ${fmtPct(c.price_change_percentage_7d_in_currency)}
+      </td>
+      <td>$${fmtAbbr(c.market_cap)}</td>
+    `;
+    tr.addEventListener("click", ()=>selectCoin(c));
+    frag.appendChild(tr);
+  }
+  tbody.appendChild(frag);
+}
+
+function filter(){
+  const s = (q.value||"").trim().toLowerCase();
+  if(!s) filtered = [...coins];
+  else filtered = coins.filter(c =>
+    String(c.name||"").toLowerCase().includes(s) ||
+    String(c.symbol||"").toLowerCase().includes(s)
+  );
+  applySort();
+  render();
+}
+
+async function loadMarkets(){
+  errBox.textContent = "";
+  statusText.textContent = "Loading markets…";
+  btnReload.disabled = true;
+
+  tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:left">Loading…</td></tr>`;
+  try{
+    const url = API + "/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=1h,24h,7d";
+    const data = await fetchJson(url, 20000);
+    if(!Array.isArray(data)) throw new Error("Invalid markets payload");
+    coins = data;
+    filtered = [...coins];
+    applySort();
+    render();
+    statusText.textContent = "Live: CoinGecko OK";
+  }catch(e){
+    statusText.textContent = "Eroare la încărcare";
+    errBox.textContent = String(e);
+    tbody.innerHTML = `<tr><td colspan="7" class="err" style="text-align:left">Failed. ${esc(String(e))}</td></tr>`;
+  } finally {
+    btnReload.disabled = false;
+  }
+}
+
+function clearChart(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "rgba(2,6,23,.55)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "rgba(148,163,184,.7)";
+  ctx.font = "14px system-ui";
+  ctx.fillText("Chart will appear here.", 18, 34);
+}
+
+function drawLineChart(points){
+  // points: [{t:number, p:number}]
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // background
+  ctx.fillStyle = "rgba(2,6,23,.55)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  if(!points || points.length < 2){
+    ctx.fillStyle = "rgba(148,163,184,.7)";
+    ctx.font = "14px system-ui";
+    ctx.fillText("Not enough data for chart.", 18, 34);
+    return;
+  }
+
+  const W = canvas.width, H = canvas.height;
+  const padL=46, padR=16, padT=18, padB=30;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  let minP = Infinity, maxP = -Infinity;
+  for(const pt of points){ minP = Math.min(minP, pt.p); maxP = Math.max(maxP, pt.p); }
+  const range = Math.max(1e-9, maxP - minP);
+
+  // grid
+  ctx.strokeStyle = "rgba(148,163,184,.12)";
+  ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const y = padT + (innerH * i/4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+  }
+
+  // axes labels (min/max)
+  ctx.fillStyle = "rgba(148,163,184,.75)";
+  ctx.font = "12px system-ui";
+  ctx.fillText("$"+maxP.toFixed(maxP>=1?2:6), 10, padT+12);
+  ctx.fillText("$"+minP.toFixed(minP>=1?2:6), 10, padT+innerH);
+
+  // line
+  ctx.strokeStyle = "rgba(147,197,253,.95)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((pt,i)=>{
+    const x = padL + innerW*(i/(points.length-1));
+    const y = padT + innerH*(1 - (pt.p - minP)/range);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // last point marker
+  const last = points[points.length-1];
+  const lx = padL + innerW;
+  const ly = padT + innerH*(1 - (last.p - minP)/range);
+  ctx.fillStyle = "rgba(34,197,94,.95)";
+  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2); ctx.fill();
+}
+
+async function loadChart(coinId){
+  errBox.textContent = "";
+  try{
+    const url = API + `/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=usd&days=30&interval=daily`;
+    const data = await fetchJson(url, 20000);
+    const prices = Array.isArray(data?.prices) ? data.prices : [];
+    const pts = prices
+      .filter(r => Array.isArray(r) && r.length>=2 && Number.isFinite(Number(r[1])))
+      .map(r => ({t:Number(r[0]), p:Number(r[1])}));
+
+    // downsample if needed
+    const step = Math.max(1, Math.floor(pts.length/120));
+    const sampled = pts.filter((_,i)=> i%step===0);
+
+    drawLineChart(sampled);
+  }catch(e){
+    errBox.textContent = "Chart error: " + String(e);
+    clearChart();
+  }
+}
+
+async function selectCoin(c){
+  selName.textContent = `${c.name} (${String(c.symbol||"").toUpperCase()})`;
+  selPrice.textContent = fmtPrice(c.current_price);
+  sel24.textContent = fmtPct(c.price_change_percentage_24h);
+  sel24.className = (c.price_change_percentage_24h||0)>0 ? "v pos" : (c.price_change_percentage_24h||0)<0 ? "v neg" : "v";
+  selMcap.textContent = "$" + fmtAbbr(c.market_cap);
+
+  clearChart();
+  await loadChart(c.id);
+}
+
+q.addEventListener("input", filter);
+sort.addEventListener("change", ()=>{ applySort(); render(); });
+btnReload.addEventListener("click", loadMarkets);
+
+// boot
+clearChart();
+loadMarkets();
+</script>
 </body>
 </html>
