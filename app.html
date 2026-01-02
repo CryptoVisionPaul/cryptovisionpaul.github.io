@@ -40,12 +40,20 @@
 body{
   min-height:100vh;
   font-family:var(--font);
-  background:radial-gradient(circle at top,#111827,#020617);
   color:var(--text);
   margin:0;
   padding:24px 12px;
   overflow-x:hidden;
   overflow-y:auto;
+
+  /* Background image + dark overlay for readability */
+  background:
+    linear-gradient(rgba(2,6,23,0.78), rgba(2,6,23,0.78)),
+    url("assets/cryptovision-hero.png");
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
 }
 
     .shell{
