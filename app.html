@@ -33,46 +33,45 @@
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-   html, body {
-  height: auto;
-}
 
-body{
-  min-height:100vh;
-  font-family:var(--font);
-  color:var(--text);
-  margin:0;
-  padding:24px 12px;
-  overflow-x:hidden;
-  overflow-y:auto;
+    body{
+      min-height:100vh;
+      font-family:var(--font);
+      color:var(--text);
+      margin:0;
+      padding:24px 12px;
+      overflow-x:hidden;
+      overflow-y:auto;
 
-  /* Background image + dark overlay for readability */
-  background:
-    linear-gradient(rgba(2,6,23,0.78), rgba(2,6,23,0.78)),
-    url("assets/cryptovision-hero.png");
-  background-size:cover;
-  background-position:center;
-  background-repeat:no-repeat;
-  background-attachment:fixed;
-}
-  .shell{
-  width:100%;
-  max-width:1720px;
-  margin:0 auto;
+      /* Background image + dark overlay */
+      background-image:
+        linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.55)),
+        url("/assets/cryptovision-hero.png");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+      background-color:#020617;
+    }
 
-  /* semi-transparent container so background image stays visible */
-  background:rgba(2,6,23,0.88);
+    .shell{
+      width:100%;
+      max-width:1720px;
+      margin:0 auto;
 
-  border-radius:32px;
-  box-shadow:var(--shadow);
-  padding:24px 24px 28px;
-  border:1px solid rgba(148,163,184,.25);
-  position:relative;
-  overflow:hidden;
+      /* semi-transparent container so background image stays visible */
+      background:rgba(2,6,23,0.55);
 
-  /* glass effect */
-  backdrop-filter: blur(14px);
-}
+      border-radius:32px;
+      box-shadow:var(--shadow);
+      padding:24px 24px 28px;
+      border:1px solid rgba(148,163,184,.25);
+      position:relative;
+      overflow:hidden;
+
+      /* glass effect */
+      backdrop-filter: blur(14px);
+    }
 
     /* Top bar */
     .top-bar{
@@ -1219,7 +1218,7 @@ body{
       const plan = loadPlan();
       const u = loadUsage();
 
-      // If the same coin was already opened today, don't count again (prevents accidental waste).
+      // If the same coin was already opened today, don't count again
       if (u.uniqueCoins && u.uniqueCoins[coinId]) return { ok: true, reason: "already-counted" };
 
       // Unlimited plan
@@ -1230,7 +1229,7 @@ body{
         return { ok: true, reason: "unlimited" };
       }
 
-      // If within plan limit (free/basic)
+      // Within plan limit
       if (u.coinViews < plan.coinViewsPerDay) {
         u.coinViews += 1;
         u.uniqueCoins[coinId] = true;
@@ -1238,7 +1237,7 @@ body{
         return { ok: true, reason: "within-limit" };
       }
 
-      // If plan is free and allows rewarded extras
+      // Free plan rewarded extras
       if (plan.id === Plans.FREE.id && plan.rewardedRequiredAfterFree) {
         if (u.rewardedViews >= plan.rewardedExtraMaxPerDay) {
           return {
@@ -1253,7 +1252,6 @@ body{
           return { ok: false, reason: "rewarded-cancel", message: "Rewarded ad not completed. Upgrade or try again." };
         }
 
-        // Grant access
         u.rewardedViews += 1;
         u.coinViews += 1;
         u.uniqueCoins[coinId] = true;
@@ -1261,7 +1259,7 @@ body{
         return { ok: true, reason: "rewarded-granted" };
       }
 
-      // Otherwise (basic cap reached)
+      // Basic cap reached
       return {
         ok: false,
         reason: "plan-cap",
@@ -1709,7 +1707,6 @@ body{
         return;
       }
 
-      // Render using DocumentFragment for better performance
       const frag = document.createDocumentFragment();
       for (const coin of filteredCoins) {
         const tr = document.createElement("tr");
@@ -2079,11 +2076,9 @@ body{
       const coin = coinsRaw.find((c) => c.id === id);
       if (!coin) return;
 
-      // Enforce plan usage first (so you monetize correctly)
       const access = await enforceAccessForCoin(coin.id);
       if (!access.ok) {
         alert(access.message || "Access blocked by plan limits.");
-        // Optionally open pricing modal
         openPricing();
         return;
       }
@@ -2345,7 +2340,6 @@ body{
       renderMarketSnapshot();
     }
 
-    // Start after DOM is ready
     document.addEventListener("DOMContentLoaded", boot);
   </script>
 </body>
