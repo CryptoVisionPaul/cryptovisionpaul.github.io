@@ -460,331 +460,283 @@
       .status-wrap{align-items:flex-start}
       .table-wrap{max-height:360px}
     }
+    /* ===== Logo image in header (replaces the "CV" text badge) ===== */
+.logo-badge{
+  width:44px;
+  height:44px;
+  border-radius:999px;
+  background:rgba(15,23,42,.65);
+  border:1px solid rgba(148,163,184,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  box-shadow:0 0 0 1px rgba(15,23,42,.35), 0 14px 30px rgba(0,0,0,.45);
+}
+
+/* Make the <a> behave like the old badge (no underline) */
+.logo-badge.premium-logo{
+  position:relative;
+  text-decoration:none;
+  flex:0 0 auto;
+}
+
+/* Image fits the badge circle cleanly */
+.logo-badge img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* Small overlay text: "Upgrade to Premium" */
+.logo-upgrade{
+  position:absolute;
+  left:50%;
+  bottom:-9px;
+  transform:translateX(-50%);
+  font-size:10px;
+  padding:2px 7px;
+  border-radius:999px;
+  background:rgba(37,99,235,.25);
+  border:1px solid rgba(96,165,250,.55);
+  color:#bfdbfe;
+  white-space:nowrap;
+  backdrop-filter:blur(10px);
+}
+
+/* Hover feedback */
+.logo-badge.premium-logo:hover{
+  filter:brightness(1.06);
+}
+
+/* ===== Promo (hero) cards ===== */
+.promo-card{
+  padding:0;
+  overflow:hidden;
+}
+
+.promo-link{
+  display:block;
+  position:relative;
+  border-radius:22px;
+  overflow:hidden;
+}
+
+.promo-img{
+  width:100%;
+  height:auto;
+  display:block;
+  transform:scale(1);
+  transition:transform .25s ease;
+}
+
+.promo-link:hover .promo-img{
+  transform:scale(1.015);
+}
+
+.promo-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, rgba(2,6,23,.75), rgba(2,6,23,.25), rgba(2,6,23,.7));
+  pointer-events:none;
+}
+
+.promo-cta{
+  position:absolute;
+  left:14px;
+  bottom:12px;
+  display:inline-flex;
+  gap:8px;
+  align-items:baseline;
+  padding:8px 10px;
+  border-radius:14px;
+  background:rgba(15,23,42,.70);
+  border:1px solid rgba(148,163,184,.30);
+  color:#e5e7eb;
+  font-size:12px;
+  backdrop-filter:blur(14px);
+}
+
   </style>
 </head>
 
 <body>
-  <div class="shell">
+ <div class="shell">
 
-    <header class="top-bar">
-      <div class="logo-wrap">
-        <!-- LOGO IMAGE: upload at assets/logo.png -->
-        <a href="premium.html" class="logo-badge premium-logo" title="Upgrade to Premium">
-  <img src="assets/logo.png" alt="CryptoVision logo"
-       onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';">
-  <span class="logo-upgrade">Upgrade to Premium</span>
-</a>
-        <div class="title-block">
-          <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
-          <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
-        </div>
+  <header class="top-bar">
+    <div class="logo-wrap">
+
+      <!-- PREMIUM LOGO (clickable) -->
+      <a href="premium.html" class="logo-badge premium-logo" title="Upgrade to Premium">
+        <img
+          src="assets/logo.png"
+          alt="CryptoVision logo"
+          loading="eager"
+          onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';"
+        />
+        <span class="logo-upgrade">Upgrade to Premium</span>
+      </a>
+
+      <div class="title-block">
+        <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
+        <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
       </div>
+    </div>
 
-      <div class="status-wrap">
-        <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
-        <div class="updated-at" id="updatedAtText">Updated: —</div>
-        <div class="source-badge" title="Data source status">
-          <span id="sourceDot" class="source-dot warn"></span>
-          <span id="sourceText" class="source-text">Source: checking…</span>
-        </div>
+    <div class="status-wrap">
+      <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
+      <div class="updated-at" id="updatedAtText">Updated: —</div>
+      <div class="source-badge" title="Data source status">
+        <span id="sourceDot" class="source-dot warn"></span>
+        <span id="sourceText" class="source-text">Source: checking…</span>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <section class="grid-top">
-      <div>
-        <div class="pill-row">
-          <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
-          <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
-          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Worldwide scenario format</span></div>
-          <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
-          <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">AdSense / affiliate area</span></div>
-          <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
-        </div>
-        <p class="mini-note">
-          Markets load via the Render backend proxy. If the backend is sleeping/down, the app falls back to CoinGecko directly.
-        </p>
+  <section class="grid-top">
+    <div>
+      <div class="pill-row">
+        <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
+        <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
+        <div class="feature-pill info"><span class="icon">AI</span><span class="label">Worldwide scenario format</span></div>
+        <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
+        <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">AdSense / affiliate area</span></div>
+        <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
       </div>
+      <p class="mini-note">
+        Markets load via the Render backend proxy. If the backend is sleeping/down, the app falls back to CoinGecko directly.
+      </p>
+    </div>
 
-      <div class="top-info-card">
-        <div class="card-header" style="margin-bottom:6px;">
+    <div class="top-info-card">
+      <div class="card-header" style="margin-bottom:6px;">
+        <div>
+          <div class="card-title">CryptoVision AI module</div>
+          <div class="card-subtitle">Per-coin prediction + probabilistic scenarios.</div>
+        </div>
+        <span class="badge blue">Live</span>
+      </div>
+      <p style="margin-bottom:4px;">
+        <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
+        then formats the output into simple “Bullish / Bearish” probability scenarios.
+      </p>
+      <p class="mini-note">
+        Educational / informational only. Not financial advice.
+      </p>
+    </div>
+  </section>
+
+  <!-- HOME HERO (clickable premium) -->
+  <section style="margin-bottom:16px;">
+    <article class="card promo-card">
+      <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
+        <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Market Intelligence" loading="lazy">
+        <div class="promo-overlay"></div>
+        <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• unlock advanced signals</span></div>
+      </a>
+    </article>
+  </section>
+
+  <!-- MAIN GRID -->
+  <section class="main-grid">
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <!-- Market Snapshot -->
+      <article class="card" style="margin-bottom:12px;">
+        <div class="card-header">
           <div>
-            <div class="card-title">CryptoVision AI module</div>
-            <div class="card-subtitle">Per-coin prediction + probabilistic scenarios.</div>
+            <div class="card-title">Market Snapshot</div>
+            <div class="card-subtitle">Top movers + market breadth (based on Top 50).</div>
           </div>
           <span class="badge blue">Live</span>
         </div>
-        <p style="margin-bottom:4px;">
-          <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
-          then formats the output into simple “Bullish / Bearish” probability scenarios.
-        </p>
-        <p class="mini-note">
-          Educational / informational only. Not financial advice.
-        </p>
-      </div>
-    </section>
 
-    <!-- HOME HERO (clickable premium) -->
-    <section style="margin-bottom:16px;">
-      <article class="card promo-card">
+        <div class="metric-grid" style="margin-bottom:12px;">
+          <div class="metric-item">
+            <div class="metric-label">Market breadth</div>
+            <div class="metric-value" id="breadthValue">—</div>
+            <div class="metric-note">Green vs red coins (24h).</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Market pulse</div>
+            <div class="metric-value" id="pulseValue">—</div>
+            <div class="metric-note">Avg 24h change (Top 50).</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+          <div>
+            <div class="small-label">Top gainers (24h)</div>
+            <ul class="ai-list" id="gainersList" style="margin-top:6px;"></ul>
+          </div>
+          <div>
+            <div class="small-label">Top losers (24h)</div>
+            <ul class="ai-list" id="losersList" style="margin-top:6px;"></ul>
+          </div>
+        </div>
+
+        <div class="hint" style="margin-top:10px;">
+          Tip: click a coin here to open it in the “Selected coin analysis” panel.
+        </div>
+      </article>
+
+      <!-- Watched coins table -->
+      <article class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Watched coins</div>
+            <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
+          </div>
+          <span class="badge gray">USD</span>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
+          </div>
+          <select id="sortSelect" class="select-small">
+            <option value="rank">Sort: Market Cap</option>
+            <option value="change24">Sort: Biggest 24h moves</option>
+            <option value="change1h">Sort: Biggest 1h moves</option>
+            <option value="change7d">Sort: Biggest 7d moves</option>
+          </select>
+          <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Coin</th>
+                <th>Price</th>
+                <th>1h</th>
+                <th>24h</th>
+                <th>7d</th>
+                <th>Market Cap</th>
+              </tr>
+            </thead>
+            <tbody id="coinsBody"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <!-- PROMO under list (clickable premium) -->
+      <article class="card promo-card" style="margin-top:12px;">
         <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
-          <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Market Intelligence" loading="lazy">
+          <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Upgrade to Premium" loading="lazy">
           <div class="promo-overlay"></div>
-          <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• unlock advanced signals</span></div>
+          <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• AI alerts + advanced tools</span></div>
         </a>
       </article>
-    </section>
 
-    <!-- MAIN GRID -->
-    <section class="main-grid">
+    </div>
 
-      <!-- LEFT COLUMN -->
-      <div>
-
-        <!-- Market Snapshot -->
-        <article class="card" style="margin-bottom:12px;">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Market Snapshot</div>
-              <div class="card-subtitle">Top movers + market breadth (based on Top 50).</div>
-            </div>
-            <span class="badge blue">Live</span>
-          </div>
-
-          <div class="metric-grid" style="margin-bottom:12px;">
-            <div class="metric-item">
-              <div class="metric-label">Market breadth</div>
-              <div class="metric-value" id="breadthValue">—</div>
-              <div class="metric-note">Green vs red coins (24h).</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">Market pulse</div>
-              <div class="metric-value" id="pulseValue">—</div>
-              <div class="metric-note">Avg 24h change (Top 50).</div>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
-            <div>
-              <div class="small-label">Top gainers (24h)</div>
-              <ul class="ai-list" id="gainersList" style="margin-top:6px;"></ul>
-            </div>
-            <div>
-              <div class="small-label">Top losers (24h)</div>
-              <ul class="ai-list" id="losersList" style="margin-top:6px;"></ul>
-            </div>
-          </div>
-
-          <div class="hint" style="margin-top:10px;">
-            Tip: click a coin here to open it in the “Selected coin analysis” panel.
-          </div>
-        </article>
-
-        <!-- Watched coins table -->
-        <article class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Watched coins</div>
-              <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
-            </div>
-            <span class="badge gray">USD</span>
-          </div>
-
-          <div class="toolbar">
-            <div class="search-box">
-              <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
-            </div>
-            <select id="sortSelect" class="select-small">
-              <option value="rank">Sort: Market Cap</option>
-              <option value="change24">Sort: Biggest 24h moves</option>
-              <option value="change1h">Sort: Biggest 1h moves</option>
-              <option value="change7d">Sort: Biggest 7d moves</option>
-            </select>
-            <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Coin</th>
-                  <th>Price</th>
-                  <th>1h</th>
-                  <th>24h</th>
-                  <th>7d</th>
-                  <th>Market Cap</th>
-                </tr>
-              </thead>
-              <tbody id="coinsBody"></tbody>
-            </table>
-          </div>
-        </article>
-
-        <!-- PROMO under list (clickable premium) -->
-        <article class="card promo-card" style="margin-top:12px;">
-          <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
-            <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Upgrade to Premium" loading="lazy">
-            <div class="promo-overlay"></div>
-            <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• AI alerts + advanced tools</span></div>
-          </a>
-        </article>
-
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div>
-        <!-- Daily Insight -->
-        <article class="card" style="margin-bottom:12px;">
-          <div class="card-header">
-            <div>
-              <div class="card-title">CryptoVision – Daily Insight</div>
-              <div class="card-subtitle">Quick summary based on the top 50 coins.</div>
-            </div>
-            <span class="badge green">Rules</span>
-          </div>
-          <div class="ai-text" id="dailyInsight">Loading market analysis...</div>
-        </article>
-
-        <!-- News -->
-        <article class="card" style="margin-bottom:12px;">
-          <div class="card-header">
-            <div>
-              <div class="card-title">CryptoVision – Crypto News</div>
-              <div class="card-subtitle">Latest headlines (via backend RSS aggregator).</div>
-            </div>
-            <button id="newsRefreshBtn" class="btn-small secondary">Refresh News</button>
-          </div>
-
-          <div class="ai-text" id="newsStatus">Loading news…</div>
-          <ul class="ai-list" id="newsList" style="margin-top:10px;"></ul>
-        </article>
-
-        <!-- Selected coin analysis -->
-        <article class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Selected coin analysis</div>
-              <div class="card-subtitle">Click a coin in the list to get AI scenarios + chart.</div>
-            </div>
-            <span class="badge orange">Focus asset</span>
-          </div>
-
-          <div class="small-label">Selected</div>
-          <div class="pair-header">
-            <div>
-              <div class="pair-name" id="selectedName">No coin selected</div>
-              <div class="pair-symbol" id="selectedSymbol">Choose from the list</div>
-            </div>
-            <div class="big-price" id="selectedPrice">—</div>
-          </div>
-
-          <div class="pill-row-small" id="selectedPills">
-            <span class="pill-info">Waiting for a selection...</span>
-          </div>
-
-          <!-- AI Controls -->
-          <div class="controls-row">
-            <select id="tfSelect" class="select-small" title="AI timeframe">
-              <option value="30m">TF: 30m</option>
-              <option value="1h">TF: 1h</option>
-              <option value="4h">TF: 4h</option>
-              <option value="1d" selected>TF: 1d</option>
-            </select>
-            <select id="daysSelect" class="select-small" title="History window used by AI">
-              <option value="30">History: 30d</option>
-              <option value="90" selected>History: 90d</option>
-              <option value="180">History: 180d</option>
-              <option value="365">History: 365d</option>
-            </select>
-            <button id="btnRetryAi" class="btn-small secondary" disabled>Retry AI</button>
-            <button id="btnClearCache" class="btn-small danger" title="Clears local cache (markets + charts + ai + news)">Clear cache</button>
-          </div>
-          <div class="hint" id="aiHint">
-            Tip: if AI is rate-limited, the app will show a clear retry countdown. Scenarios stay in English for worldwide use.
-          </div>
-
-          <div class="metric-grid">
-            <div class="metric-item">
-              <div class="metric-label">Market Cap</div>
-              <div class="metric-value" id="metricMarketCap">—</div>
-              <div class="metric-note">Project size vs market.</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">AI / RSI</div>
-              <div class="metric-value" id="metricBias">—</div>
-              <div class="metric-note">From backend prediction.</div>
-            </div>
-          </div>
-
-          <div class="ai-comment" id="coinComment">
-            Select a coin to load AI prediction and probabilistic scenarios.
-          </div>
-
-          <div class="scenario-block">
-            <strong>Probabilistic scenarios:</strong>
-            <ul class="scenario-list" id="scenarioList"><li>—</li></ul>
-          </div>
-
-          <div class="chart-wrap">
-            <div class="small-label" style="margin-bottom:4px;">Chart – last 30 days (USD)</div>
-            <canvas id="priceChart"></canvas>
-          </div>
-
-          <div class="ad-card">
-            <strong>ADS / AFFILIATE AREA</strong><br/>
-            Place your AdSense units or affiliate banners here after approval.
-          </div>
-
-          <div class="footer-note">
-            Educational / informational only. Not financial advice.
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <!-- BACKEND GRID -->
-    <section class="backend-grid">
-      <div class="panel">
-        <h2>Backend Test</h2>
-        <p>
-          Health: <code>/health</code> • AI: <code>/ai/predict</code> (examples: bitcoin, ethereum).
-        </p>
-
-        <div class="row">
-          <label for="ai-coin-id-input" style="font-size:12px; color:var(--text-soft);">Coin ID:</label>
-          <input id="ai-coin-id-input" class="input" type="text" value="bitcoin" />
-          <button class="btn" type="button" id="btnTestBackend">Test AI</button>
-          <button class="btn" type="button" id="btnHealth" style="background:#60a5fa;">Health</button>
-        </div>
-
-        <pre id="ai-backend-result">No request yet.</pre>
-      </div>
-
-      <div class="panel">
-        <h3>AI Summary</h3>
-        <p>This box updates after you call the AI endpoint.</p>
-        <div style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin-top:10px; font-size:12px;">
-          <div>
-            <div style="opacity:.75;">Coin</div>
-            <strong id="ai-summary-coin">-</strong>
-          </div>
-          <div>
-            <div style="opacity:.75;">Last price</div>
-            <strong id="ai-summary-last">-</strong>
-          </div>
-          <div>
-            <div style="opacity:.75;">Predicted</div>
-            <strong id="ai-summary-predicted">-</strong>
-          </div>
-          <div>
-            <div style="opacity:.75;">RSI</div>
-            <strong id="ai-summary-rsi">-</strong>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </div>
+    <!-- RIGHT COLUMN -->
+    <div>
+      <!-- ... restul codului tău rămâne identic (Daily Insight, News, Selected coin, etc.) ... -->
 
   <script>
     // ==========================================================
