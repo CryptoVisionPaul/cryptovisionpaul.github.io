@@ -33,19 +33,25 @@
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    body{
-      min-height:100vh;
-      font-family:var(--font);
-      background:radial-gradient(circle at top,#111827,#020617);
-      color:var(--text);
-      display:flex;
-      justify-content:center;
-      padding:24px 12px;
-    }
+   html, body {
+  height: auto;
+}
+
+body{
+  min-height:100vh;
+  font-family:var(--font);
+  background:radial-gradient(circle at top,#111827,#020617);
+  color:var(--text);
+  margin:0;
+  padding:24px 12px;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
 
     .shell{
       width:100%;
       max-width:1720px;
+      margin:0 auto;
       background:linear-gradient(135deg,#020617,#020617 40%,#020617 60%,#020617);
       border-radius:32px;
       box-shadow:var(--shadow);
