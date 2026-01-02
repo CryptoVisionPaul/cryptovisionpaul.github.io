@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- (Optional) AdSense loader - keep if you already use it -->
+  <!-- AdSense loader (keep if you already use it) -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9902358545401183"
     crossorigin="anonymous"></script>
 
@@ -9,9 +9,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CryptoVision – AI Crypto Insights</title>
   <meta name="description" content="CryptoVision – live crypto prices + AI insights. Backend proxy + fallback." />
+  <meta name="theme-color" content="#020617" />
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js (defer to avoid blocking render) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root{
@@ -31,6 +32,7 @@
       --font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     }
     *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
     body{
       min-height:100vh;
       font-family:var(--font);
@@ -40,6 +42,7 @@
       justify-content:center;
       padding:24px 12px;
     }
+
     .shell{
       width:100%;
       max-width:1720px;
@@ -61,56 +64,41 @@
       opacity:.9; pointer-events:none; z-index:-1;
     }
 
+    /* Top bar */
     .top-bar{
       display:flex; justify-content:space-between; gap:16px;
       align-items:center; margin-bottom:18px; flex-wrap:wrap;
     }
     .logo-wrap{display:flex; align-items:center; gap:14px}
-    .premium-logo{
-  position: relative;
-  text-decoration: none;
-}
 
-.premium-logo img{
-  height: 40px;
-  width: auto;
-  display: block;
-}
-
-.logo-upgrade{
-  position: absolute;
-  bottom: -8px;
-  right: -4px;
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(37,99,235,.85);
-  color: #e0f2fe;
-  border: 1px solid rgba(96,165,250,.8);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  pointer-events: none;
-}
-
-
-    /* ==========================================================
-       LOGO (image-based)
-       - upload your file at: assets/logo.png  (recommended 256x256)
-       ========================================================== */
+    /* Logo badge (clickable premium) */
     .logo-badge{
       width:44px;height:44px;border-radius:999px;
-      background:rgba(15,23,42,.75);
+      background:rgba(15,23,42,.65);
       border:1px solid rgba(148,163,184,.35);
-      box-shadow:0 0 0 1px rgba(15,23,42,.5),0 18px 38px rgba(37,99,235,.25);
-      overflow:hidden;
       display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+      box-shadow:0 0 0 1px rgba(15,23,42,.35), 0 14px 30px rgba(0,0,0,.45);
       flex:0 0 auto;
     }
-    .logo-badge img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
+    a.logo-badge{ text-decoration:none; position:relative; }
+    .logo-badge img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .logo-badge:hover{ filter:brightness(1.06); }
+
+    .logo-upgrade{
+      position:absolute;
+      left:50%;
+      bottom:-9px;
+      transform:translateX(-50%);
+      font-size:10px;
+      padding:2px 7px;
+      border-radius:999px;
+      background:rgba(37,99,235,.25);
+      border:1px solid rgba(96,165,250,.55);
+      color:#bfdbfe;
+      white-space:nowrap;
+      backdrop-filter:blur(10px);
+      pointer-events:none;
     }
 
     .title-block h1{
@@ -154,6 +142,39 @@
     .source-dot.bad{background:#f97373; box-shadow:0 0 0 4px rgba(249,115,115,.18);}
     .source-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+    /* Pricing pill + usage */
+    .right-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+    .pill-btn{
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.35);
+      background:rgba(15,23,42,.75);
+      color:#e5e7eb;
+      font-size:11px;
+      padding:7px 10px;
+      cursor:pointer;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      backdrop-filter:blur(16px);
+      white-space:nowrap;
+    }
+    .pill-btn:hover{filter:brightness(1.06)}
+    .pill-btn.primary{
+      background:linear-gradient(135deg, rgba(37,99,235,.55), rgba(34,197,94,.25));
+      border-color:rgba(96,165,250,.55);
+      color:#e0f2fe;
+    }
+    .usage-pill{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.35);
+      background:rgba(15,23,42,.6);
+      color:#cbd5e1;
+      font-size:11px;
+      max-width:100%;
+    }
+
+    /* Top info */
     .grid-top{
       display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr);
       gap:18px; margin-bottom:16px;
@@ -184,6 +205,7 @@
     }
     .top-info-card strong{color:#e5e7eb}
 
+    /* Main grid */
     .main-grid{
       display:grid;
       grid-template-columns:minmax(0,4fr) minmax(0,2fr);
@@ -397,348 +419,519 @@
       line-height:1.4;
     }
 
-    /* ==========================================================
-       HERO / PROMO BANNERS (clickable to premium.html)
-       ========================================================== */
-    .promo-card{
-      padding:0;
-      overflow:hidden;
-      cursor:pointer;
-      position:relative;
-      border:1px solid rgba(148,163,184,.28);
-    }
-    .promo-link{
-      display:block;
-      text-decoration:none;
-      color:inherit;
-      position:relative;
-    }
-    .promo-img{
-      display:block;
-      width:100%;
-      height:auto;
-      border-radius:22px;
-      transform:scale(1.01);
-      filter:saturate(1.05);
-    }
+    /* Promo cards */
+    .promo-card{ padding:0; overflow:hidden; cursor:pointer; position:relative; border:1px solid rgba(148,163,184,.28); }
+    .promo-link{ display:block; text-decoration:none; color:inherit; position:relative; border-radius:22px; overflow:hidden; }
+    .promo-img{ display:block; width:100%; height:auto; transform:scale(1); transition:transform .25s ease; filter:saturate(1.05); }
     .promo-overlay{
-      position:absolute;
-      inset:0;
-      background:linear-gradient(
-        90deg,
-        rgba(2,6,23,0.78) 0%,
-        rgba(2,6,23,0.45) 45%,
-        rgba(2,6,23,0.10) 75%,
-        rgba(2,6,23,0.00) 100%
-      );
+      position:absolute; inset:0;
+      background:linear-gradient(90deg, rgba(2,6,23,0.78) 0%, rgba(2,6,23,0.35) 50%, rgba(2,6,23,0.75) 100%);
       pointer-events:none;
     }
     .promo-cta{
-      position:absolute;
-      left:14px;
-      bottom:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:11px;
-      letter-spacing:.02em;
+      position:absolute; left:14px; bottom:12px;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      font-size:11px; letter-spacing:.02em;
       border:1px solid rgba(96,165,250,.55);
       background:rgba(15,23,42,.78);
       backdrop-filter:blur(10px);
       color:#e5e7eb;
     }
     .promo-cta strong{color:#bfdbfe}
-    .promo-card:hover .promo-img{filter:saturate(1.12) brightness(1.02)}
-    .promo-card:active .promo-img{transform:scale(1.005)}
+    .promo-card:hover .promo-img{transform:scale(1.015); filter:saturate(1.12) brightness(1.02)}
 
-    @media (max-width: 900px){
-      body{padding:12px 6px}
-      .shell{border-radius:20px; padding:14px}
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background:rgba(2,6,23,.72);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .modal-backdrop.show{display:flex}
+    .modal{
+      width:min(920px, 100%);
+      border-radius:22px;
+      border:1px solid rgba(148,163,184,.28);
+      background:rgba(15,23,42,.92);
+      box-shadow:0 22px 70px rgba(0,0,0,.65);
+      overflow:hidden;
+    }
+    .modal-head{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px 16px;
+      border-bottom:1px solid rgba(148,163,184,.18);
+    }
+    .modal-head h3{font-size:14px}
+    .modal-close{
+      border:1px solid rgba(148,163,184,.25);
+      background:rgba(2,6,23,.35);
+      color:#e5e7eb;
+      border-radius:12px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+    .modal-body{padding:14px 16px}
+    .plan-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    .plan{
+      border-radius:18px;
+      border:1px solid rgba(148,163,184,.25);
+      background:rgba(2,6,23,.35);
+      padding:12px;
+      position:relative;
+    }
+    .plan .tag{
+      position:absolute; top:10px; right:10px;
+      font-size:10px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.25);
+      color:#e5e7eb;
+      background:rgba(15,23,42,.55);
+    }
+    .plan h4{font-size:13px;margin-bottom:6px}
+    .plan .price{font-size:18px; font-weight:700; margin-bottom:6px}
+    .plan .desc{font-size:11px;color:var(--text-soft);line-height:1.45}
+    .plan ul{list-style:none;margin-top:10px;font-size:11px;color:#cbd5e1}
+    .plan li{margin-bottom:6px; position:relative; padding-left:14px}
+    .plan li::before{content:"•"; position:absolute; left:2px; color:#60a5fa}
+    .plan .actions{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
+    .plan .btn-small{flex:1}
+    .plan .btn-small.primary{color:#ecfeff}
+
+    .note{
+      margin-top:10px;
+      font-size:11px;
+      color:var(--text-soft);
+      line-height:1.45;
+    }
+
+    @media (max-width: 980px){
       .grid-top,.main-grid,.backend-grid{grid-template-columns:minmax(0,1fr)}
       .status-wrap{align-items:flex-start}
       .table-wrap{max-height:360px}
+      .plan-grid{grid-template-columns:minmax(0,1fr)}
     }
-    /* ===== Logo image in header (replaces the "CV" text badge) ===== */
-.logo-badge{
-  width:44px;
-  height:44px;
-  border-radius:999px;
-  background:rgba(15,23,42,.65);
-  border:1px solid rgba(148,163,184,.35);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  box-shadow:0 0 0 1px rgba(15,23,42,.35), 0 14px 30px rgba(0,0,0,.45);
-}
-
-/* Make the <a> behave like the old badge (no underline) */
-.logo-badge.premium-logo{
-  position:relative;
-  text-decoration:none;
-  flex:0 0 auto;
-}
-
-/* Image fits the badge circle cleanly */
-.logo-badge img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-/* Small overlay text: "Upgrade to Premium" */
-.logo-upgrade{
-  position:absolute;
-  left:50%;
-  bottom:-9px;
-  transform:translateX(-50%);
-  font-size:10px;
-  padding:2px 7px;
-  border-radius:999px;
-  background:rgba(37,99,235,.25);
-  border:1px solid rgba(96,165,250,.55);
-  color:#bfdbfe;
-  white-space:nowrap;
-  backdrop-filter:blur(10px);
-}
-
-/* Hover feedback */
-.logo-badge.premium-logo:hover{
-  filter:brightness(1.06);
-}
-
-/* ===== Promo (hero) cards ===== */
-.promo-card{
-  padding:0;
-  overflow:hidden;
-}
-
-.promo-link{
-  display:block;
-  position:relative;
-  border-radius:22px;
-  overflow:hidden;
-}
-
-.promo-img{
-  width:100%;
-  height:auto;
-  display:block;
-  transform:scale(1);
-  transition:transform .25s ease;
-}
-
-.promo-link:hover .promo-img{
-  transform:scale(1.015);
-}
-
-.promo-overlay{
-  position:absolute;
-  inset:0;
-  background:linear-gradient(90deg, rgba(2,6,23,.75), rgba(2,6,23,.25), rgba(2,6,23,.7));
-  pointer-events:none;
-}
-
-.promo-cta{
-  position:absolute;
-  left:14px;
-  bottom:12px;
-  display:inline-flex;
-  gap:8px;
-  align-items:baseline;
-  padding:8px 10px;
-  border-radius:14px;
-  background:rgba(15,23,42,.70);
-  border:1px solid rgba(148,163,184,.30);
-  color:#e5e7eb;
-  font-size:12px;
-  backdrop-filter:blur(14px);
-}
-
   </style>
 </head>
 
 <body>
- <div class="shell">
+  <div class="shell">
+    <header class="top-bar">
+      <div class="logo-wrap">
+        <!-- PREMIUM LOGO (clickable) -->
+        <a href="premium.html" class="logo-badge" title="Premium">
+          <img src="assets/logo.png" alt="CryptoVision logo" loading="eager"
+               onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';" />
+          <span class="logo-upgrade">Premium</span>
+        </a>
 
-  <header class="top-bar">
-    <div class="logo-wrap">
-
-      <!-- PREMIUM LOGO (clickable) -->
-      <a href="premium.html" class="logo-badge premium-logo" title="Upgrade to Premium">
-        <img
-          src="assets/logo.png"
-          alt="CryptoVision logo"
-          loading="eager"
-          onerror="this.onerror=null; this.src='assets/cryptovision-hero.png';"
-        />
-        <span class="logo-upgrade">Upgrade to Premium</span>
-      </a>
-
-      <div class="title-block">
-        <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
-        <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
-      </div>
-    </div>
-
-    <div class="status-wrap">
-      <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
-      <div class="updated-at" id="updatedAtText">Updated: —</div>
-      <div class="source-badge" title="Data source status">
-        <span id="sourceDot" class="source-dot warn"></span>
-        <span id="sourceText" class="source-text">Source: checking…</span>
-      </div>
-    </div>
-  </header>
-
-  <section class="grid-top">
-    <div>
-      <div class="pill-row">
-        <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
-        <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
-        <div class="feature-pill info"><span class="icon">AI</span><span class="label">Worldwide scenario format</span></div>
-        <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
-        <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">AdSense / affiliate area</span></div>
-        <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
-      </div>
-      <p class="mini-note">
-        Markets load via the Render backend proxy. If the backend is sleeping/down, the app falls back to CoinGecko directly.
-      </p>
-    </div>
-
-    <div class="top-info-card">
-      <div class="card-header" style="margin-bottom:6px;">
-        <div>
-          <div class="card-title">CryptoVision AI module</div>
-          <div class="card-subtitle">Per-coin prediction + probabilistic scenarios.</div>
+        <div class="title-block">
+          <h1>CryptoVision <span class="title-pill">AI Crypto Insights</span></h1>
+          <p>Live crypto prices + AI insights. (Backend proxy + fallback)</p>
         </div>
-        <span class="badge blue">Live</span>
       </div>
-      <p style="margin-bottom:4px;">
-        <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
-        then formats the output into simple “Bullish / Bearish” probability scenarios.
-      </p>
-      <p class="mini-note">
-        Educational / informational only. Not financial advice.
-      </p>
-    </div>
-  </section>
 
-  <!-- HOME HERO (clickable premium) -->
-  <section style="margin-bottom:16px;">
-    <article class="card promo-card">
-      <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
-        <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Market Intelligence" loading="lazy">
-        <div class="promo-overlay"></div>
-        <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• unlock advanced signals</span></div>
-      </a>
-    </article>
-  </section>
+      <div class="status-wrap">
+        <div class="right-actions">
+          <div class="usage-pill" id="usagePill">Plan: — • Usage: —</div>
+          <button class="pill-btn primary" id="btnOpenPricing" type="button" title="Plans & pricing">
+            Plans • Pricing
+          </button>
+          <a class="pill-btn" href="premium.html" title="Premium page">Premium page</a>
+        </div>
 
-  <!-- MAIN GRID -->
-  <section class="main-grid">
-    <!-- LEFT COLUMN -->
-    <div>
+        <div class="live-badge"><span class="dot"></span><span>Live market feed (real-time-ish)</span></div>
+        <div class="updated-at" id="updatedAtText">Updated: —</div>
+        <div class="source-badge" title="Data source status">
+          <span id="sourceDot" class="source-dot warn"></span>
+          <span id="sourceText" class="source-text">Source: checking…</span>
+        </div>
+      </div>
+    </header>
 
-      <!-- Market Snapshot -->
-      <article class="card" style="margin-bottom:12px;">
-        <div class="card-header">
+    <section class="grid-top">
+      <div>
+        <div class="pill-row">
+          <div class="feature-pill good"><span class="icon">✓</span><span class="label">Top 50 markets (backend proxy)</span></div>
+          <div class="feature-pill good"><span class="icon">✓</span><span class="label">CoinGecko fallback (auto)</span></div>
+          <div class="feature-pill info"><span class="icon">AI</span><span class="label">Worldwide scenario format</span></div>
+          <div class="feature-pill info"><span class="icon">UX</span><span class="label">Modern blue + dark UI</span></div>
+          <div class="feature-pill ad"><span class="icon">Ad</span><span class="label">Ads / affiliate slots</span></div>
+          <div class="feature-pill info"><span class="icon">∞</span><span class="label">Ready for subscription</span></div>
+        </div>
+        <p class="mini-note">
+          Markets load via the Render backend proxy. If the backend is sleeping/down, the app falls back to CoinGecko directly.
+        </p>
+      </div>
+
+      <div class="top-info-card">
+        <div class="card-header" style="margin-bottom:6px;">
           <div>
-            <div class="card-title">Market Snapshot</div>
-            <div class="card-subtitle">Top movers + market breadth (based on Top 50).</div>
+            <div class="card-title">CryptoVision AI module</div>
+            <div class="card-subtitle">Per-coin prediction + probabilistic scenarios.</div>
           </div>
           <span class="badge blue">Live</span>
         </div>
+        <p style="margin-bottom:4px;">
+          <strong>How it works:</strong> select a coin and the app calls your backend <code>/ai/predict</code>,
+          then formats the output into simple “Bullish / Bearish” probability scenarios.
+        </p>
+        <p class="mini-note">
+          Educational / informational only. Not financial advice.
+        </p>
+      </div>
+    </section>
 
-        <div class="metric-grid" style="margin-bottom:12px;">
-          <div class="metric-item">
-            <div class="metric-label">Market breadth</div>
-            <div class="metric-value" id="breadthValue">—</div>
-            <div class="metric-note">Green vs red coins (24h).</div>
-          </div>
-          <div class="metric-item">
-            <div class="metric-label">Market pulse</div>
-            <div class="metric-value" id="pulseValue">—</div>
-            <div class="metric-note">Avg 24h change (Top 50).</div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
-          <div>
-            <div class="small-label">Top gainers (24h)</div>
-            <ul class="ai-list" id="gainersList" style="margin-top:6px;"></ul>
-          </div>
-          <div>
-            <div class="small-label">Top losers (24h)</div>
-            <ul class="ai-list" id="losersList" style="margin-top:6px;"></ul>
-          </div>
-        </div>
-
-        <div class="hint" style="margin-top:10px;">
-          Tip: click a coin here to open it in the “Selected coin analysis” panel.
-        </div>
-      </article>
-
-      <!-- Watched coins table -->
-      <article class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Watched coins</div>
-            <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
-          </div>
-          <span class="badge gray">USD</span>
-        </div>
-
-        <div class="toolbar">
-          <div class="search-box">
-            <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
-          </div>
-          <select id="sortSelect" class="select-small">
-            <option value="rank">Sort: Market Cap</option>
-            <option value="change24">Sort: Biggest 24h moves</option>
-            <option value="change1h">Sort: Biggest 1h moves</option>
-            <option value="change7d">Sort: Biggest 7d moves</option>
-          </select>
-          <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Coin</th>
-                <th>Price</th>
-                <th>1h</th>
-                <th>24h</th>
-                <th>7d</th>
-                <th>Market Cap</th>
-              </tr>
-            </thead>
-            <tbody id="coinsBody"></tbody>
-          </table>
-        </div>
-      </article>
-
-      <!-- PROMO under list (clickable premium) -->
-      <article class="card promo-card" style="margin-top:12px;">
+    <!-- HOME HERO (clickable premium) -->
+    <section style="margin-bottom:16px;">
+      <article class="card promo-card">
         <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
-          <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Upgrade to Premium" loading="lazy">
+          <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Market Intelligence" loading="lazy">
           <div class="promo-overlay"></div>
-          <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• AI alerts + advanced tools</span></div>
+          <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• unlock advanced signals</span></div>
         </a>
       </article>
+    </section>
 
+    <!-- MAIN GRID -->
+    <section class="main-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- Market Snapshot -->
+        <article class="card" style="margin-bottom:12px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Market Snapshot</div>
+              <div class="card-subtitle">Top movers + market breadth (based on Top 50).</div>
+            </div>
+            <span class="badge blue">Live</span>
+          </div>
+
+          <div class="metric-grid" style="margin-bottom:12px;">
+            <div class="metric-item">
+              <div class="metric-label">Market breadth</div>
+              <div class="metric-value" id="breadthValue">—</div>
+              <div class="metric-note">Green vs red coins (24h).</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-label">Market pulse</div>
+              <div class="metric-value" id="pulseValue">—</div>
+              <div class="metric-note">Avg 24h change (Top 50).</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+            <div>
+              <div class="small-label">Top gainers (24h)</div>
+              <ul class="ai-list" id="gainersList" style="margin-top:6px;"></ul>
+            </div>
+            <div>
+              <div class="small-label">Top losers (24h)</div>
+              <ul class="ai-list" id="losersList" style="margin-top:6px;"></ul>
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:10px;">
+            Tip: click a coin here to open it in the “Selected coin analysis” panel.
+          </div>
+        </article>
+
+        <!-- Watched coins table -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Watched coins</div>
+              <div class="card-subtitle">Top 50 by market cap – backend proxy + fallback.</div>
+            </div>
+            <span class="badge gray">USD</span>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <input id="searchInput" class="search-input" type="text" placeholder="Search coin (e.g. bitcoin, eth, bnb)..." />
+            </div>
+            <select id="sortSelect" class="select-small">
+              <option value="rank">Sort: Market Cap</option>
+              <option value="change24">Sort: Biggest 24h moves</option>
+              <option value="change1h">Sort: Biggest 1h moves</option>
+              <option value="change7d">Sort: Biggest 7d moves</option>
+            </select>
+            <button id="refreshBtn" class="btn-small primary" title="Manual refresh is rate-limited to 60s">Refresh</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Coin</th>
+                  <th>Price</th>
+                  <th>1h</th>
+                  <th>24h</th>
+                  <th>7d</th>
+                  <th>Market Cap</th>
+                </tr>
+              </thead>
+              <tbody id="coinsBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- PROMO under list -->
+        <article class="card promo-card" style="margin-top:12px;">
+          <a class="promo-link" href="premium.html" aria-label="Upgrade to Premium">
+            <img class="promo-img" src="assets/cryptovision-hero.png" alt="CryptoVision – Upgrade to Premium" loading="lazy">
+            <div class="promo-overlay"></div>
+            <div class="promo-cta"><strong>Upgrade to Premium</strong><span style="opacity:.85;">• AI alerts + advanced tools</span></div>
+          </a>
+        </article>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <!-- Daily Insight -->
+        <article class="card" style="margin-bottom:12px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">CryptoVision – Daily Insight</div>
+              <div class="card-subtitle">Quick summary based on the top 50 coins.</div>
+            </div>
+            <span class="badge green">Rules</span>
+          </div>
+          <div class="ai-text" id="dailyInsight">Loading market analysis...</div>
+        </article>
+
+        <!-- News -->
+        <article class="card" style="margin-bottom:12px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">CryptoVision – Crypto News</div>
+              <div class="card-subtitle">Latest headlines (via backend RSS aggregator).</div>
+            </div>
+            <button id="newsRefreshBtn" class="btn-small secondary">Refresh News</button>
+          </div>
+
+          <div class="ai-text" id="newsStatus">Loading news…</div>
+          <ul class="ai-list" id="newsList" style="margin-top:10px;"></ul>
+        </article>
+
+        <!-- Selected coin analysis -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Selected coin analysis</div>
+              <div class="card-subtitle">Click a coin in the list to get AI scenarios + chart.</div>
+            </div>
+            <span class="badge orange">Focus asset</span>
+          </div>
+
+          <div class="small-label">Selected</div>
+          <div class="pair-header">
+            <div>
+              <div class="pair-name" id="selectedName">No coin selected</div>
+              <div class="pair-symbol" id="selectedSymbol">Choose from the list</div>
+            </div>
+            <div class="big-price" id="selectedPrice">—</div>
+          </div>
+
+          <div class="pill-row-small" id="selectedPills">
+            <span class="pill-info">Waiting for a selection...</span>
+          </div>
+
+          <!-- AI Controls -->
+          <div class="controls-row">
+            <select id="tfSelect" class="select-small" title="AI timeframe">
+              <option value="30m">TF: 30m</option>
+              <option value="1h">TF: 1h</option>
+              <option value="4h">TF: 4h</option>
+              <option value="1d" selected>TF: 1d</option>
+            </select>
+            <select id="daysSelect" class="select-small" title="History window used by AI">
+              <option value="30">History: 30d</option>
+              <option value="90" selected>History: 90d</option>
+              <option value="180">History: 180d</option>
+              <option value="365">History: 365d</option>
+            </select>
+            <button id="btnRetryAi" class="btn-small secondary" disabled>Retry AI</button>
+            <button id="btnClearCache" class="btn-small danger" title="Clears local cache (markets + charts + ai + news)">Clear cache</button>
+          </div>
+          <div class="hint" id="aiHint">
+            Tip: if AI is rate-limited, the app will show a clear retry countdown. Scenarios stay in English for worldwide use.
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-item">
+              <div class="metric-label">Market Cap</div>
+              <div class="metric-value" id="metricMarketCap">—</div>
+              <div class="metric-note">Project size vs market.</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-label">AI / RSI</div>
+              <div class="metric-value" id="metricBias">—</div>
+              <div class="metric-note">From backend prediction.</div>
+            </div>
+          </div>
+
+          <div class="ai-comment" id="coinComment">
+            Select a coin to load AI prediction and probabilistic scenarios.
+          </div>
+
+          <div class="scenario-block">
+            <strong>Probabilistic scenarios:</strong>
+            <ul class="scenario-list" id="scenarioList"><li>—</li></ul>
+          </div>
+
+          <div class="chart-wrap">
+            <div class="small-label" style="margin-bottom:4px;">Chart – last 30 days (USD)</div>
+            <canvas id="priceChart"></canvas>
+          </div>
+
+          <!-- Ads / affiliate area -->
+          <div class="ad-card" id="adArea">
+            <strong>ADS / AFFILIATE AREA</strong><br/>
+            Place your AdSense units or affiliate banners here after approval.
+          </div>
+
+          <div class="footer-note">
+            Educational / informational only. Not financial advice.
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- BACKEND GRID -->
+    <section class="backend-grid">
+      <div class="panel">
+        <h2>Backend Test</h2>
+        <p>
+          Health: <code>/health</code> • AI: <code>/ai/predict</code> (examples: bitcoin, ethereum).
+        </p>
+
+        <div class="row">
+          <label for="ai-coin-id-input" style="font-size:12px; color:var(--text-soft);">Coin ID:</label>
+          <input id="ai-coin-id-input" class="input" type="text" value="bitcoin" />
+          <button class="btn" type="button" id="btnTestBackend">Test AI</button>
+          <button class="btn" type="button" id="btnHealth" style="background:#60a5fa;">Health</button>
+        </div>
+
+        <pre id="ai-backend-result">No request yet.</pre>
+      </div>
+
+      <div class="panel">
+        <h3>AI Summary</h3>
+        <p>This box updates after you call the AI endpoint.</p>
+        <div style="display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin-top:10px; font-size:12px;">
+          <div>
+            <div style="opacity:.75;">Coin</div>
+            <strong id="ai-summary-coin">-</strong>
+          </div>
+          <div>
+            <div style="opacity:.75;">Last price</div>
+            <strong id="ai-summary-last">-</strong>
+          </div>
+          <div>
+            <div style="opacity:.75;">Predicted</div>
+            <strong id="ai-summary-predicted">-</strong>
+          </div>
+          <div>
+            <div style="opacity:.75;">RSI</div>
+            <strong id="ai-summary-rsi">-</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Pricing Modal -->
+  <div class="modal-backdrop" id="pricingModal" role="dialog" aria-modal="true" aria-label="Plans and pricing">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Plans & Pricing</h3>
+        <button class="modal-close" id="btnClosePricing" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="ai-text">
+          Choose a plan. For now, plan selection is stored locally (demo mode). When you integrate payments (Stripe / PayPal),
+          you will replace the “Activate” actions with real checkout flows.
+        </div>
+
+        <div class="plan-grid">
+          <div class="plan">
+            <span class="tag">Default</span>
+            <h4>Free</h4>
+            <div class="price">$0</div>
+            <div class="desc">
+              1 coin/day free. Additional coins require a rewarded video ad, max 3/day.
+            </div>
+            <ul>
+              <li>1 free coin view per day</li>
+              <li>Rewarded video for extra views</li>
+              <li>Max 3 rewarded views/day</li>
+              <li>Good for testing</li>
+            </ul>
+            <div class="actions">
+              <button class="btn-small primary" type="button" id="btnPlanFree">Activate Free</button>
+            </div>
+          </div>
+
+          <div class="plan">
+            <span class="tag">Best value</span>
+            <h4>Premium Basic</h4>
+            <div class="price">$3.99<span style="font-size:12px;opacity:.8;">/month</span></div>
+            <div class="desc">
+              Up to 10 coins/day. No rewarded ads.
+            </div>
+            <ul>
+              <li>10 coin views per day</li>
+              <li>No rewarded ads</li>
+              <li>Faster flow, less friction</li>
+            </ul>
+            <div class="actions">
+              <button class="btn-small primary" type="button" id="btnPlanBasic">Activate Basic</button>
+              <a class="btn-small secondary" href="premium.html">Premium page</a>
+            </div>
+          </div>
+
+          <div class="plan">
+            <span class="tag">Pro</span>
+            <h4>Premium Unlimited</h4>
+            <div class="price">$9.99<span style="font-size:12px;opacity:.8;">/month</span></div>
+            <div class="desc">
+              Unlimited coins/day. No rewarded ads.
+            </div>
+            <ul>
+              <li>Unlimited coin views</li>
+              <li>No rewarded ads</li>
+              <li>Best for daily traders</li>
+            </ul>
+            <div class="actions">
+              <button class="btn-small primary" type="button" id="btnPlanUnlimited">Activate Unlimited</button>
+              <a class="btn-small secondary" href="premium.html">Premium page</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="note">
+          <strong>Important:</strong> “Rewarded video ads” are shown here as a placeholder button. Once AdSense/AdMob (or another provider)
+          is integrated, you will trigger a real rewarded ad and only then allow the extra coin view.
+        </div>
+      </div>
     </div>
-
-    <!-- RIGHT COLUMN -->
-    <div>
-      <!-- ... restul codului tău rămâne identic (Daily Insight, News, Selected coin, etc.) ... -->
+  </div>
 
   <script>
+    "use strict";
+
     // ==========================================================
     // CONFIG
     // ==========================================================
@@ -748,61 +941,86 @@
 
     const REFRESH_MIN_INTERVAL_MS = 60_000;
     const MARKETS_CACHE_TTL_MS = 60_000;
-    const STORAGE_KEY_MARKETS = "cv_markets_cache_v1";
+    const STORAGE_KEY_MARKETS = "cv_markets_cache_v2";
 
     const AI_CACHE_TTL_MS = 120_000;
 
     const NEWS_ENDPOINT = "/news";
     const NEWS_CACHE_TTL_MS = 5 * 60_000;
     const NEWS_REFRESH_MIN_INTERVAL_MS = 30_000;
-    const STORAGE_KEY_NEWS = "cv_news_cache_v1";
+    const STORAGE_KEY_NEWS = "cv_news_cache_v2";
 
     const AI_ENDPOINT = "/ai/predict";
     const CHART_ENDPOINT = "/chart";
-    const STORAGE_KEY_PREFS = "cv_prefs_v1";
+    const STORAGE_KEY_PREFS = "cv_prefs_v2";
+
+    // Monetization / plan
+    const STORAGE_KEY_PLAN = "cv_plan_v1";
+    const STORAGE_KEY_USAGE = "cv_usage_v1";
+
+    const Plans = {
+      FREE: { id: "free", label: "Free", coinViewsPerDay: 1, rewardedExtraMaxPerDay: 3, rewardedRequiredAfterFree: true },
+      BASIC: { id: "basic", label: "Premium Basic", coinViewsPerDay: 10, rewardedExtraMaxPerDay: 0, rewardedRequiredAfterFree: false },
+      UNLIMITED: { id: "unlimited", label: "Premium Unlimited", coinViewsPerDay: Infinity, rewardedExtraMaxPerDay: 0, rewardedRequiredAfterFree: false }
+    };
+
+    // ==========================================================
+    // Helpers (safe DOM)
+    // ==========================================================
+    const $ = (id) => document.getElementById(id);
+    function on(el, ev, fn) { if (el) el.addEventListener(ev, fn, { passive: true }); }
 
     // ==========================================================
     // DOM
     // ==========================================================
-    const coinsBody = document.getElementById("coinsBody");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
-    const refreshBtn = document.getElementById("refreshBtn");
-    const updatedAtText = document.getElementById("updatedAtText");
-    const dailyInsightEl = document.getElementById("dailyInsight");
+    const coinsBody = $("coinsBody");
+    const searchInput = $("searchInput");
+    const sortSelect = $("sortSelect");
+    const refreshBtn = $("refreshBtn");
+    const updatedAtText = $("updatedAtText");
+    const dailyInsightEl = $("dailyInsight");
 
-    const sourceDot = document.getElementById("sourceDot");
-    const sourceText = document.getElementById("sourceText");
+    const sourceDot = $("sourceDot");
+    const sourceText = $("sourceText");
 
-    const selectedNameEl = document.getElementById("selectedName");
-    const selectedSymbolEl = document.getElementById("selectedSymbol");
-    const selectedPriceEl = document.getElementById("selectedPrice");
-    const selectedPillsEl = document.getElementById("selectedPills");
-    const metricMarketCapEl = document.getElementById("metricMarketCap");
-    const metricBiasEl = document.getElementById("metricBias");
-    const coinCommentEl = document.getElementById("coinComment");
-    const scenarioListEl = document.getElementById("scenarioList");
+    const selectedNameEl = $("selectedName");
+    const selectedSymbolEl = $("selectedSymbol");
+    const selectedPriceEl = $("selectedPrice");
+    const selectedPillsEl = $("selectedPills");
+    const metricMarketCapEl = $("metricMarketCap");
+    const metricBiasEl = $("metricBias");
+    const coinCommentEl = $("coinComment");
+    const scenarioListEl = $("scenarioList");
 
-    const aiInput = document.getElementById("ai-coin-id-input");
-    const aiResult = document.getElementById("ai-backend-result");
-    const btnTestBackend = document.getElementById("btnTestBackend");
-    const btnHealth = document.getElementById("btnHealth");
+    const aiInput = $("ai-coin-id-input");
+    const aiResult = $("ai-backend-result");
+    const btnTestBackend = $("btnTestBackend");
+    const btnHealth = $("btnHealth");
 
-    const tfSelect = document.getElementById("tfSelect");
-    const daysSelect = document.getElementById("daysSelect");
-    const btnRetryAi = document.getElementById("btnRetryAi");
-    const btnClearCache = document.getElementById("btnClearCache");
-    const aiHint = document.getElementById("aiHint");
+    const tfSelect = $("tfSelect");
+    const daysSelect = $("daysSelect");
+    const btnRetryAi = $("btnRetryAi");
+    const btnClearCache = $("btnClearCache");
+    const aiHint = $("aiHint");
 
-    const newsListEl = document.getElementById("newsList");
-    const newsStatusEl = document.getElementById("newsStatus");
-    const newsRefreshBtn = document.getElementById("newsRefreshBtn");
+    const newsListEl = $("newsList");
+    const newsStatusEl = $("newsStatus");
+    const newsRefreshBtn = $("newsRefreshBtn");
 
     // Market Snapshot DOM
-    const breadthValueEl = document.getElementById("breadthValue");
-    const pulseValueEl = document.getElementById("pulseValue");
-    const gainersListEl = document.getElementById("gainersList");
-    const losersListEl = document.getElementById("losersList");
+    const breadthValueEl = $("breadthValue");
+    const pulseValueEl = $("pulseValue");
+    const gainersListEl = $("gainersList");
+    const losersListEl = $("losersList");
+
+    // Pricing / usage DOM
+    const usagePill = $("usagePill");
+    const btnOpenPricing = $("btnOpenPricing");
+    const pricingModal = $("pricingModal");
+    const btnClosePricing = $("btnClosePricing");
+    const btnPlanFree = $("btnPlanFree");
+    const btnPlanBasic = $("btnPlanBasic");
+    const btnPlanUnlimited = $("btnPlanUnlimited");
 
     // ==========================================================
     // STATE
@@ -834,18 +1052,37 @@
     // ==========================================================
     // UTIL
     // ==========================================================
+    function todayKey() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function safeNum(x) {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function escapeHtml(s) {
+      const str = String(s ?? "");
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function updateTimestamp() {
+      if (!updatedAtText) return;
       const now = new Date();
       const formatted = now.toLocaleString("en-GB", {
         year: "numeric", month: "2-digit", day: "2-digit",
         hour: "2-digit", minute: "2-digit", second: "2-digit"
       });
       updatedAtText.textContent = "Updated: " + formatted;
-    }
-
-    function safeNum(x) {
-      const n = Number(x);
-      return Number.isFinite(n) ? n : null;
     }
 
     function formatPrice(value) {
@@ -878,6 +1115,7 @@
     }
 
     function setSourceBadge(kind, msg) {
+      if (!sourceDot || !sourceText) return;
       sourceDot.classList.remove("ok", "warn", "bad");
       if (kind === DataSource.BACKEND) sourceDot.classList.add("ok");
       else if (kind === DataSource.COINGECKO) sourceDot.classList.add("warn");
@@ -886,17 +1124,8 @@
       sourceText.textContent = msg;
     }
 
-    function escapeHtml(s) {
-      const str = String(s ?? "");
-      return str
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
     function showErrorInTable(message) {
+      if (!coinsBody) return;
       coinsBody.innerHTML = "";
       const tr = document.createElement("tr");
       const td = document.createElement("td");
@@ -909,6 +1138,7 @@
     }
 
     function showLoadingRow(message = "Loading…") {
+      if (!coinsBody) return;
       coinsBody.innerHTML = "";
       const tr = document.createElement("tr");
       const td = document.createElement("td");
@@ -918,6 +1148,115 @@
       td.textContent = message;
       tr.appendChild(td);
       coinsBody.appendChild(tr);
+    }
+
+    // ==========================================================
+    // PLAN / USAGE (local demo implementation)
+    // ==========================================================
+    function loadPlan() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_PLAN);
+        const id = (raw || "free").toLowerCase();
+        if (id === "basic") return Plans.BASIC;
+        if (id === "unlimited") return Plans.UNLIMITED;
+        return Plans.FREE;
+      } catch {
+        return Plans.FREE;
+      }
+    }
+
+    function savePlan(planId) {
+      try { localStorage.setItem(STORAGE_KEY_PLAN, planId); } catch {}
+      updateUsagePill();
+    }
+
+    function loadUsage() {
+      const key = todayKey();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_USAGE);
+        if (!raw) return { day: key, coinViews: 0, rewardedViews: 0, uniqueCoins: {} };
+        const u = JSON.parse(raw);
+        if (!u || u.day !== key) return { day: key, coinViews: 0, rewardedViews: 0, uniqueCoins: {} };
+        if (!u.uniqueCoins || typeof u.uniqueCoins !== "object") u.uniqueCoins = {};
+        return u;
+      } catch {
+        return { day: key, coinViews: 0, rewardedViews: 0, uniqueCoins: {} };
+      }
+    }
+
+    function saveUsage(u) {
+      try { localStorage.setItem(STORAGE_KEY_USAGE, JSON.stringify(u)); } catch {}
+      updateUsagePill();
+    }
+
+    function updateUsagePill() {
+      if (!usagePill) return;
+      const plan = loadPlan();
+      const u = loadUsage();
+      const limit = (plan.coinViewsPerDay === Infinity) ? "∞" : String(plan.coinViewsPerDay);
+      const extra = (plan.rewardedExtraMaxPerDay || 0);
+      usagePill.textContent =
+        `Plan: ${plan.label} • Usage today: ${u.coinViews}/${limit} • Rewarded used: ${u.rewardedViews}/${extra}`;
+    }
+
+    async function showRewardedAdPlaceholder() {
+      // Placeholder for real rewarded video.
+      // Replace this with AdSense/AdMob rewarded flow later.
+      return confirm("Watch a rewarded video ad to unlock this coin view? (demo placeholder)");
+    }
+
+    async function enforceAccessForCoin(coinId) {
+      const plan = loadPlan();
+      const u = loadUsage();
+
+      // If the same coin was already opened today, don't count again (prevents accidental waste).
+      if (u.uniqueCoins && u.uniqueCoins[coinId]) return { ok: true, reason: "already-counted" };
+
+      // Unlimited plan
+      if (plan.coinViewsPerDay === Infinity) {
+        u.coinViews += 1;
+        u.uniqueCoins[coinId] = true;
+        saveUsage(u);
+        return { ok: true, reason: "unlimited" };
+      }
+
+      // If within plan limit (free/basic)
+      if (u.coinViews < plan.coinViewsPerDay) {
+        u.coinViews += 1;
+        u.uniqueCoins[coinId] = true;
+        saveUsage(u);
+        return { ok: true, reason: "within-limit" };
+      }
+
+      // If plan is free and allows rewarded extras
+      if (plan.id === Plans.FREE.id && plan.rewardedRequiredAfterFree) {
+        if (u.rewardedViews >= plan.rewardedExtraMaxPerDay) {
+          return {
+            ok: false,
+            reason: "rewarded-limit",
+            message: "Daily limit reached for rewarded views (max 3/day). Try again tomorrow or upgrade to Premium."
+          };
+        }
+
+        const watched = await showRewardedAdPlaceholder();
+        if (!watched) {
+          return { ok: false, reason: "rewarded-cancel", message: "Rewarded ad not completed. Upgrade or try again." };
+        }
+
+        // Grant access
+        u.rewardedViews += 1;
+        u.coinViews += 1;
+        u.uniqueCoins[coinId] = true;
+        saveUsage(u);
+        return { ok: true, reason: "rewarded-granted" };
+      }
+
+      // Otherwise (basic cap reached)
+      return {
+        ok: false,
+        reason: "plan-cap",
+        message: `Daily plan limit reached (${plan.coinViewsPerDay}/day). Upgrade to Unlimited for unlimited access.`
+      };
     }
 
     // ==========================================================
@@ -1003,7 +1342,7 @@
     }
 
     // ==========================================================
-    // CACHE: markets
+    // CACHE: markets/news
     // ==========================================================
     function loadMarketsCache() {
       try {
@@ -1023,7 +1362,6 @@
       return (Date.now() - ts) <= MARKETS_CACHE_TTL_MS;
     }
 
-    // NEWS cache helpers
     function loadNewsCache() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_NEWS);
@@ -1049,9 +1387,9 @@
       chartCache.clear();
       aiCache.clear();
 
-      coinCommentEl.textContent = "Cache cleared. Select a coin again.";
-      scenarioListEl.innerHTML = "<li>—</li>";
-      aiHint.textContent = "Cache cleared.";
+      if (coinCommentEl) coinCommentEl.textContent = "Cache cleared. Select a coin again.";
+      if (scenarioListEl) scenarioListEl.innerHTML = "<li>—</li>";
+      if (aiHint) aiHint.textContent = "Cache cleared.";
 
       if (newsStatusEl) newsStatusEl.textContent = "News cache cleared. Click Refresh News.";
       if (newsListEl) newsListEl.innerHTML = "";
@@ -1160,6 +1498,7 @@
     }
 
     function renderNewsItems(items) {
+      if (!newsListEl || !newsStatusEl) return;
       newsListEl.innerHTML = "";
       if (!items || !items.length) {
         newsStatusEl.textContent = "No news items available right now.";
@@ -1260,10 +1599,8 @@
       isLoadingMarkets = true;
 
       try {
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = "Loading…";
-
-        dailyInsightEl.textContent = "Loading market analysis...";
+        if (refreshBtn) { refreshBtn.disabled = true; refreshBtn.textContent = "Loading…"; }
+        if (dailyInsightEl) dailyInsightEl.textContent = "Loading market analysis...";
         showLoadingRow("Loading…");
 
         const cached = loadMarketsCache();
@@ -1319,17 +1656,16 @@
           renderMarketSnapshot();
           updateTimestamp();
           setSourceBadge(DataSource.CACHE, "Source: cache (fallback after error) ⚠");
-          dailyInsightEl.textContent = "Loaded from cache due to upstream error.";
+          if (dailyInsightEl) dailyInsightEl.textContent = "Loaded from cache due to upstream error.";
         } else {
           setSourceBadge("error", "Source: FAILED (backend + CoinGecko + no cache)");
           showErrorInTable("Failed to load markets. Please try again in 60s.");
-          dailyInsightEl.textContent = "Error loading data (rate limit / backend / network).";
+          if (dailyInsightEl) dailyInsightEl.textContent = "Error loading data (rate limit / backend / network).";
           renderMarketSnapshot();
         }
       } finally {
         isLoadingMarkets = false;
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = "Refresh";
+        if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.textContent = "Refresh"; }
       }
     }
 
@@ -1348,6 +1684,7 @@
     }
 
     function renderTable() {
+      if (!coinsBody) return;
       coinsBody.innerHTML = "";
 
       if (!filteredCoins.length) {
@@ -1362,7 +1699,9 @@
         return;
       }
 
-      filteredCoins.forEach((coin) => {
+      // Render using DocumentFragment for better performance
+      const frag = document.createDocumentFragment();
+      for (const coin of filteredCoins) {
         const tr = document.createElement("tr");
         tr.dataset.id = coin.id;
 
@@ -1406,12 +1745,13 @@
         tr.appendChild(mcTd);
 
         tr.addEventListener("click", () => handleCoinClick(coin.id));
-        coinsBody.appendChild(tr);
-      });
+        frag.appendChild(tr);
+      }
+      coinsBody.appendChild(frag);
     }
 
     function filterCoins() {
-      const q = (searchInput.value || "").toLowerCase().trim();
+      const q = (searchInput?.value || "").toLowerCase().trim();
       if (!q) filteredCoins = [...coinsRaw];
       else {
         filteredCoins = coinsRaw.filter((c) =>
@@ -1428,6 +1768,8 @@
     // DAILY INSIGHT (rules)
     // ==========================================================
     function makeDailyInsight() {
+      if (!dailyInsightEl) return;
+
       if (!coinsRaw.length) {
         dailyInsightEl.textContent = "Not enough data yet. Try refresh.";
         return;
@@ -1437,7 +1779,7 @@
       let topGainer = null, topLoser = null;
       let highVolMoves = 0;
 
-      coinsRaw.forEach((c) => {
+      for (const c of coinsRaw) {
         const chg = c.price_change_percentage_24h;
         if (chg != null && !Number.isNaN(chg)) {
           sum24 += chg;
@@ -1446,7 +1788,7 @@
           if (!topLoser || chg < (topLoser.price_change_percentage_24h ?? 9999)) topLoser = c;
           if (Math.abs(chg) >= 5) highVolMoves++;
         }
-      });
+      }
 
       const avg24 = count24 ? (sum24 / count24) : 0;
       let mood = "balanced / sideways";
@@ -1473,7 +1815,7 @@
     }
 
     // ==========================================================
-    // AI scenarios (unchanged logic)
+    // AI scenarios
     // ==========================================================
     function computeProbabilisticScenarios({ last, predicted, low, high }) {
       const lastN = safeNum(last);
@@ -1554,6 +1896,7 @@
     }
 
     function renderProbabilisticScenarioList(scenarios) {
+      if (!scenarioListEl) return;
       scenarioListEl.innerHTML = "";
       if (!Array.isArray(scenarios) || scenarios.length === 0) {
         scenarioListEl.innerHTML = "<li>No scenarios available.</li>";
@@ -1591,18 +1934,18 @@
     function startAiRetryCountdown(seconds) {
       stopAiRetryTimer();
       aiRetryRemainingSec = Math.max(1, Math.floor(seconds || 10));
-      btnRetryAi.disabled = true;
-      aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
+      if (btnRetryAi) btnRetryAi.disabled = true;
+      if (aiHint) aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
 
       aiRetryTimer = setInterval(() => {
         aiRetryRemainingSec -= 1;
         if (aiRetryRemainingSec <= 0) {
           stopAiRetryTimer();
-          btnRetryAi.disabled = false;
-          aiHint.textContent = "AI retry is available now.";
+          if (btnRetryAi) btnRetryAi.disabled = false;
+          if (aiHint) aiHint.textContent = "AI retry is available now.";
           return;
         }
-        aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
+        if (aiHint) aiHint.textContent = `AI rate-limited. Retry available in ${aiRetryRemainingSec}s.`;
       }, 1000);
     }
 
@@ -1648,49 +1991,6 @@
       return "$" + n.toFixed(6);
     }
 
-    async function loadChartForCoin(coin) {
-      const id = coin.id;
-
-      let chartData = chartCache.get(id);
-      if (!chartData) {
-        const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 30, interval: "daily" });
-        const payload = await fetchJsonWithRetry(backendUrl, { timeoutMs: 18000, retries: 0, mode: "cors" });
-
-        const prices = Array.isArray(payload?.prices) ? payload.prices : [];
-        if (!prices.length) throw new Error("Backend chart returned empty prices.");
-
-        chartData = normalizeChartPrices(prices);
-        chartCache.set(id, chartData);
-      }
-
-      const canvas = document.getElementById("priceChart");
-      const ctx = canvas.getContext("2d");
-      if (priceChart) priceChart.destroy();
-
-      priceChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: chartData.labels,
-          datasets: [{
-            label: `${coin.name} – price (USD)`,
-            data: chartData.values,
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.25
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
-          scales: {
-            x: { ticks: { color: "#9ca3af", maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }, grid: { display: false } },
-            y: { ticks: { color: "#9ca3af", callback: (v) => yTickFormatter(v) }, grid: { color: "rgba(55, 65, 81, 0.6)" } }
-          }
-        }
-      });
-    }
-
     function normalizeChartPrices(prices) {
       const labels = [];
       const values = [];
@@ -1714,55 +2014,116 @@
       return { labels, values };
     }
 
+    async function loadChartForCoin(coin) {
+      const id = coin.id;
+
+      let chartData = chartCache.get(id);
+      if (!chartData) {
+        const backendUrl = buildBackendChartUrl({ coinId: id, vsCurrency: "usd", days: 30, interval: "daily" });
+        const payload = await fetchJsonWithRetry(backendUrl, { timeoutMs: 18000, retries: 0, mode: "cors" });
+
+        const prices = Array.isArray(payload?.prices) ? payload.prices : [];
+        if (!prices.length) throw new Error("Backend chart returned empty prices.");
+
+        chartData = normalizeChartPrices(prices);
+        chartCache.set(id, chartData);
+      }
+
+      const canvas = $("priceChart");
+      if (!canvas) throw new Error("Chart canvas not found.");
+      const ctx = canvas.getContext("2d");
+
+      if (priceChart) priceChart.destroy();
+      if (!window.Chart) throw new Error("Chart.js not loaded yet.");
+
+      priceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartData.labels,
+          datasets: [{
+            label: `${coin.name} – price (USD)`,
+            data: chartData.values,
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.25
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#e5e7eb", font: { size: 10 } } }
+          },
+          scales: {
+            x: { ticks: { color: "#9ca3af", maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }, grid: { display: false } },
+            y: { ticks: { color: "#9ca3af", callback: (v) => yTickFormatter(v) }, grid: { color: "rgba(55, 65, 81, 0.6)" } }
+          }
+        }
+      });
+    }
+
     // ==========================================================
-    // SELECT COIN
+    // SELECT COIN (with plan/usage enforcement)
     // ==========================================================
     async function handleCoinClick(id) {
       const coin = coinsRaw.find((c) => c.id === id);
       if (!coin) return;
 
+      // Enforce plan usage first (so you monetize correctly)
+      const access = await enforceAccessForCoin(coin.id);
+      if (!access.ok) {
+        alert(access.message || "Access blocked by plan limits.");
+        // Optionally open pricing modal
+        openPricing();
+        return;
+      }
+
       selectedCoinId = id;
-      btnRetryAi.disabled = true;
+      if (btnRetryAi) btnRetryAi.disabled = true;
       stopAiRetryTimer();
 
-      selectedNameEl.textContent = coin.name ?? "Unknown";
-      selectedSymbolEl.textContent = (coin.symbol ?? "?").toUpperCase() + " / USD";
-      selectedPriceEl.textContent = formatPrice(coin.current_price);
-      metricMarketCapEl.textContent = "$" + formatNumberAbbr(coin.market_cap ?? 0);
+      if (selectedNameEl) selectedNameEl.textContent = coin.name ?? "Unknown";
+      if (selectedSymbolEl) selectedSymbolEl.textContent = (coin.symbol ?? "?").toUpperCase() + " / USD";
+      if (selectedPriceEl) selectedPriceEl.textContent = formatPrice(coin.current_price);
+      if (metricMarketCapEl) metricMarketCapEl.textContent = "$" + formatNumberAbbr(coin.market_cap ?? 0);
 
-      selectedPillsEl.innerHTML = "";
+      if (selectedPillsEl) {
+        selectedPillsEl.innerHTML = "";
 
-      const pill24 = document.createElement("span");
-      pill24.className = "pill-info " + ((coin.price_change_percentage_24h ?? 0) > 0 ? "green" : (coin.price_change_percentage_24h ?? 0) < 0 ? "red" : "");
-      pill24.textContent = "24h: " + formatPercent(coin.price_change_percentage_24h);
-      selectedPillsEl.appendChild(pill24);
+        const pill24 = document.createElement("span");
+        pill24.className = "pill-info " + ((coin.price_change_percentage_24h ?? 0) > 0 ? "green" : (coin.price_change_percentage_24h ?? 0) < 0 ? "red" : "");
+        pill24.textContent = "24h: " + formatPercent(coin.price_change_percentage_24h);
+        selectedPillsEl.appendChild(pill24);
 
-      const pill1h = document.createElement("span");
-      pill1h.className = "pill-info " + ((coin.price_change_percentage_1h_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_1h_in_currency ?? 0) < 0 ? "red" : "");
-      pill1h.textContent = "1h: " + formatPercent(coin.price_change_percentage_1h_in_currency);
-      selectedPillsEl.appendChild(pill1h);
+        const pill1h = document.createElement("span");
+        pill1h.className = "pill-info " + ((coin.price_change_percentage_1h_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_1h_in_currency ?? 0) < 0 ? "red" : "");
+        pill1h.textContent = "1h: " + formatPercent(coin.price_change_percentage_1h_in_currency);
+        selectedPillsEl.appendChild(pill1h);
 
-      const pill7d = document.createElement("span");
-      pill7d.className = "pill-info " + ((coin.price_change_percentage_7d_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_7d_in_currency ?? 0) < 0 ? "red" : "");
-      pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
-      selectedPillsEl.appendChild(pill7d);
+        const pill7d = document.createElement("span");
+        pill7d.className = "pill-info " + ((coin.price_change_percentage_7d_in_currency ?? 0) > 0 ? "green" : (coin.price_change_percentage_7d_in_currency ?? 0) < 0 ? "red" : "");
+        pill7d.textContent = "7d: " + formatPercent(coin.price_change_percentage_7d_in_currency);
+        selectedPillsEl.appendChild(pill7d);
+      }
 
+      // Chart
       try {
-        coinCommentEl.textContent = "Loading chart from backend…";
+        if (coinCommentEl) coinCommentEl.textContent = "Loading chart from backend…";
         await loadChartForCoin(coin);
       } catch (e) {
         console.error("[Chart] failed:", e);
-        coinCommentEl.textContent = "Chart unavailable (backend rate-limit or network). Please retry later.";
+        if (coinCommentEl) coinCommentEl.textContent = "Chart unavailable (backend rate-limit or network). Please retry later.";
         if (priceChart) { priceChart.destroy(); priceChart = null; }
       }
 
-      metricBiasEl.textContent = "Loading AI…";
-      coinCommentEl.textContent = "Fetching AI prediction from backend…";
-      scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
-      aiHint.textContent = "AI request in progress…";
+      // AI
+      if (metricBiasEl) metricBiasEl.textContent = "Loading AI…";
+      if (coinCommentEl) coinCommentEl.textContent = "Fetching AI prediction from backend…";
+      if (scenarioListEl) scenarioListEl.innerHTML = "<li>Loading scenarios…</li>";
+      if (aiHint) aiHint.textContent = "AI request in progress…";
 
-      const tf = (tfSelect.value || "1d");
-      const days = Number(daysSelect.value || 90);
+      const tf = (tfSelect?.value || "1d");
+      const days = Number(daysSelect?.value || 90);
       savePrefs(tf, days);
 
       try {
@@ -1778,18 +2139,18 @@
         renderProbabilisticScenarioList(scenarios);
 
         const model = ai?.model || "ai";
-        metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
+        if (metricBiasEl) metricBiasEl.textContent = `${model} • RSI ${rsi != null ? rsi.toFixed(2) : "—"}`;
 
         if (last != null && predicted != null && low != null && high != null) {
-          coinCommentEl.textContent =
-            `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
-          aiHint.textContent = `AI OK • TF ${tf} • History ${days}d`;
+          if (coinCommentEl) {
+            coinCommentEl.textContent =
+              `Prediction: ${formatPrice(predicted)} (68% range: ${formatPrice(low)} – ${formatPrice(high)}).`;
+          }
+          if (aiHint) aiHint.textContent = `AI OK • TF ${tf} • History ${days}d`;
         } else {
-          coinCommentEl.textContent =
-            "Prediction returned, but some fields are missing (check backend response).";
-          aiHint.textContent = "AI responded, but some values were missing.";
+          if (coinCommentEl) coinCommentEl.textContent = "Prediction returned, but some fields are missing (check backend response).";
+          if (aiHint) aiHint.textContent = "AI responded, but some values were missing.";
         }
-
       } catch (e) {
         console.error("[AI] failed:", e);
 
@@ -1802,18 +2163,18 @@
             if (Number.isFinite(raNum) && raNum > 0) retryAfter = raNum;
           } catch {}
 
-          metricBiasEl.textContent = "AI rate-limited";
-          coinCommentEl.textContent = "AI rate-limited by upstream. Please retry shortly.";
-          scenarioListEl.innerHTML = "<li>AI rate-limited. Retry shortly.</li>";
+          if (metricBiasEl) metricBiasEl.textContent = "AI rate-limited";
+          if (coinCommentEl) coinCommentEl.textContent = "AI rate-limited by upstream. Please retry shortly.";
+          if (scenarioListEl) scenarioListEl.innerHTML = "<li>AI rate-limited. Retry shortly.</li>";
           startAiRetryCountdown(retryAfter);
           return;
         }
 
-        metricBiasEl.textContent = "AI unavailable";
-        coinCommentEl.textContent = "AI endpoint failed. Please try again later.";
-        scenarioListEl.innerHTML = "<li>AI is temporarily unavailable.</li>";
-        aiHint.textContent = "AI unavailable (network/backend).";
-        btnRetryAi.disabled = false;
+        if (metricBiasEl) metricBiasEl.textContent = "AI unavailable";
+        if (coinCommentEl) coinCommentEl.textContent = "AI endpoint failed. Please try again later.";
+        if (scenarioListEl) scenarioListEl.innerHTML = "<li>AI is temporarily unavailable.</li>";
+        if (aiHint) aiHint.textContent = "AI unavailable (network/backend).";
+        if (btnRetryAi) btnRetryAi.disabled = false;
       }
     }
 
@@ -1828,123 +2189,154 @@
     // ==========================================================
     async function testHealth() {
       const url = `${BACKEND_BASE_URL.replace(/\/$/, "")}/health`;
-      aiResult.textContent = "Calling: " + url;
-      btnHealth.disabled = true;
+      if (aiResult) aiResult.textContent = "Calling: " + url;
+      if (btnHealth) btnHealth.disabled = true;
       try {
         const res = await fetchJsonDetailed(url, { timeoutMs: 12000, retries: 0, mode: "cors" });
-        aiResult.textContent = JSON.stringify(res.data, null, 2);
+        if (aiResult) aiResult.textContent = JSON.stringify(res.data, null, 2);
       } catch (err) {
-        aiResult.textContent = "Health error:\n" + String(err);
+        if (aiResult) aiResult.textContent = "Health error:\n" + String(err);
       } finally {
-        btnHealth.disabled = false;
+        if (btnHealth) btnHealth.disabled = false;
       }
     }
 
     async function handleAiBackendTest() {
-      const coinId = (aiInput.value || "bitcoin").trim();
-      if (!coinId) { aiResult.textContent = "Please enter a CoinGecko coin id."; return; }
+      const coinId = (aiInput?.value || "bitcoin").trim();
+      if (!coinId) { if (aiResult) aiResult.textContent = "Please enter a CoinGecko coin id."; return; }
 
-      const tf = (tfSelect.value || "1d");
-      const days = Number(daysSelect.value || 90);
+      const tf = (tfSelect?.value || "1d");
+      const days = Number(daysSelect?.value || 90);
 
       const url = buildAiUrl({ coinId, days, timeframe: tf });
-      aiResult.textContent = "Calling: " + url;
-      btnTestBackend.disabled = true;
+      if (aiResult) aiResult.textContent = "Calling: " + url;
+      if (btnTestBackend) btnTestBackend.disabled = true;
 
       try {
         const res = await fetchJsonDetailed(url, { timeoutMs: 45000, retries: 0, mode: "cors" });
         const data = res.data;
 
-        document.getElementById("ai-summary-coin").textContent = data?.coin_id ?? "-";
-        document.getElementById("ai-summary-last").textContent =
-          (typeof data?.last_price === "number") ? data.last_price.toFixed(6) : "-";
-        document.getElementById("ai-summary-predicted").textContent =
-          (typeof data?.predicted_price === "number") ? data.predicted_price.toFixed(6) : "-";
-        document.getElementById("ai-summary-rsi").textContent =
-          (typeof data?.indicators?.rsi === "number") ? data.indicators.rsi.toFixed(2) : "-";
+        const sCoin = $("ai-summary-coin");
+        const sLast = $("ai-summary-last");
+        const sPred = $("ai-summary-predicted");
+        const sRsi  = $("ai-summary-rsi");
 
-        aiResult.textContent = JSON.stringify(data, null, 2);
+        if (sCoin) sCoin.textContent = data?.coin_id ?? "-";
+        if (sLast) sLast.textContent = (typeof data?.last_price === "number") ? data.last_price.toFixed(6) : "-";
+        if (sPred) sPred.textContent = (typeof data?.predicted_price === "number") ? data.predicted_price.toFixed(6) : "-";
+        if (sRsi)  sRsi.textContent  = (typeof data?.indicators?.rsi === "number") ? data.indicators.rsi.toFixed(2) : "-";
+
+        if (aiResult) aiResult.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
-        aiResult.textContent = "Error while calling backend:\n" + String(err);
+        if (aiResult) aiResult.textContent = "Error while calling backend:\n" + String(err);
       } finally {
-        btnTestBackend.disabled = false;
+        if (btnTestBackend) btnTestBackend.disabled = false;
       }
     }
 
     // ==========================================================
-    // EVENTS + INIT
+    // Pricing modal controls
     // ==========================================================
-    searchInput.addEventListener("input", filterCoins);
+    function openPricing() {
+      if (!pricingModal) return;
+      pricingModal.classList.add("show");
+    }
+    function closePricing() {
+      if (!pricingModal) return;
+      pricingModal.classList.remove("show");
+    }
 
-    sortSelect.addEventListener("change", () => {
-      currentSort = sortSelect.value;
-      applySort();
-      renderTable();
-      renderMarketSnapshot();
-    });
-
-    refreshBtn.addEventListener("click", async () => {
-      const now = Date.now();
-      const elapsed = now - lastManualRefreshTs;
-
-      if (elapsed < REFRESH_MIN_INTERVAL_MS) {
-        const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - elapsed) / 1000);
-        alert(`Please wait ${remaining}s before refreshing again (rate-limit protection).`);
-        return;
-      }
-
-      lastManualRefreshTs = now;
-      await loadMarkets({ reason: "manual" });
-    });
-
-    newsRefreshBtn.addEventListener("click", async () => {
-      await loadNews({ force: true });
-    });
-
-    btnTestBackend.addEventListener("click", handleAiBackendTest);
-    btnHealth.addEventListener("click", testHealth);
-
-    btnRetryAi.addEventListener("click", async () => {
-      btnRetryAi.disabled = true;
-      stopAiRetryTimer();
-      aiHint.textContent = "Retrying AI…";
-      await retryAiForSelectedCoin();
-    });
-
-    btnClearCache.addEventListener("click", () => {
-      clearAllCaches();
-    });
-
-    tfSelect.addEventListener("change", () => {
-      const days = Number(daysSelect.value || 90);
-      savePrefs(tfSelect.value, days);
-      if (selectedCoinId) {
-        aiHint.textContent = "Timeframe changed. Click Retry AI to refresh scenarios.";
-        btnRetryAi.disabled = false;
-      }
-    });
-
-    daysSelect.addEventListener("change", () => {
-      const days = Number(daysSelect.value || 90);
-      savePrefs(tfSelect.value, days);
-      if (selectedCoinId) {
-        aiHint.textContent = "History changed. Click Retry AI to refresh scenarios.";
-        btnRetryAi.disabled = false;
-      }
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
+    // ==========================================================
+    // INIT
+    // ==========================================================
+    function boot() {
       setSourceBadge("init", "Source: checking…");
+      updateUsagePill();
 
       const prefs = loadPrefs();
-      if (prefs && prefs.tf) tfSelect.value = prefs.tf;
-      if (prefs && Number.isFinite(Number(prefs.days))) daysSelect.value = String(prefs.days);
+      if (tfSelect && prefs && prefs.tf) tfSelect.value = prefs.tf;
+      if (daysSelect && prefs && Number.isFinite(Number(prefs.days))) daysSelect.value = String(prefs.days);
 
+      // Events (safe)
+      on(searchInput, "input", filterCoins);
+
+      on(sortSelect, "change", () => {
+        currentSort = sortSelect.value;
+        applySort();
+        renderTable();
+        renderMarketSnapshot();
+      });
+
+      on(refreshBtn, "click", async () => {
+        const now = Date.now();
+        const elapsed = now - lastManualRefreshTs;
+
+        if (elapsed < REFRESH_MIN_INTERVAL_MS) {
+          const remaining = Math.ceil((REFRESH_MIN_INTERVAL_MS - elapsed) / 1000);
+          alert(`Please wait ${remaining}s before refreshing again (rate-limit protection).`);
+          return;
+        }
+
+        lastManualRefreshTs = now;
+        await loadMarkets({ reason: "manual" });
+      });
+
+      on(newsRefreshBtn, "click", async () => {
+        await loadNews({ force: true });
+      });
+
+      on(btnTestBackend, "click", handleAiBackendTest);
+      on(btnHealth, "click", testHealth);
+
+      on(btnRetryAi, "click", async () => {
+        if (btnRetryAi) btnRetryAi.disabled = true;
+        stopAiRetryTimer();
+        if (aiHint) aiHint.textContent = "Retrying AI…";
+        await retryAiForSelectedCoin();
+      });
+
+      on(btnClearCache, "click", clearAllCaches);
+
+      on(tfSelect, "change", () => {
+        const days = Number(daysSelect?.value || 90);
+        savePrefs(tfSelect.value, days);
+        if (selectedCoinId) {
+          if (aiHint) aiHint.textContent = "Timeframe changed. Click Retry AI to refresh scenarios.";
+          if (btnRetryAi) btnRetryAi.disabled = false;
+        }
+      });
+
+      on(daysSelect, "change", () => {
+        const days = Number(daysSelect?.value || 90);
+        savePrefs(tfSelect?.value || "1d", days);
+        if (selectedCoinId) {
+          if (aiHint) aiHint.textContent = "History changed. Click Retry AI to refresh scenarios.";
+          if (btnRetryAi) btnRetryAi.disabled = false;
+        }
+      });
+
+      // Pricing modal events
+      on(btnOpenPricing, "click", openPricing);
+      on(btnClosePricing, "click", closePricing);
+      on(pricingModal, "click", (e) => {
+        if (e && e.target === pricingModal) closePricing();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closePricing();
+      });
+
+      on(btnPlanFree, "click", () => { savePlan("free"); closePricing(); });
+      on(btnPlanBasic, "click", () => { savePlan("basic"); closePricing(); });
+      on(btnPlanUnlimited, "click", () => { savePlan("unlimited"); closePricing(); });
+
+      // Initial loads
       loadMarkets({ reason: "auto" });
       loadNews({ force: false });
-
       renderMarketSnapshot();
-    });
+    }
+
+    // Start after DOM is ready
+    document.addEventListener("DOMContentLoaded", boot);
   </script>
 </body>
 </html>
