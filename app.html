@@ -502,7 +502,7 @@
       font-size:10px;
       padding:3px 8px;
       border-radius:999px;
-      border:1px solid rgba(148,163,184,.25);
+      border:: 1px solid rgba(148,163,184,.25);
       color:#e5e7eb;
       background:rgba(15,23,42,.55);
     }
@@ -566,6 +566,36 @@
         </div>
       </div>
     </header>
+
+    <!-- (2) Launch App (app.html) – AdSense-friendly editorial block -->
+    <section class="content-block" style="max-width:1100px;margin:18px auto 14px;padding:0 18px;">
+      <h2 style="font-size:18px;margin-bottom:8px;">Live Markets (educational view)</h2>
+      <p style="line-height:1.7;color:#e5e7eb;opacity:.92;">
+        This page displays live market snapshots for major cryptocurrencies using public market data. You can search for a coin,
+        compare percentage changes across time windows, and open a selected asset to view structured insights. The information shown here
+        is intended for education and market awareness only. It is not a buy/sell signal and it does not guarantee outcomes.
+      </p>
+
+      <h3 style="font-size:15px;margin:12px 0 6px;">Data sources and reliability</h3>
+      <p style="line-height:1.7;color:#e5e7eb;opacity:.92;">
+        CryptoVision may load prices through a backend proxy and can fall back to a public provider when the backend is unavailable or sleeping.
+        Because providers enforce rate limits, you may see refresh cooldowns or cached results. If an API is temporarily unavailable,
+        some sections (charts, news, or AI-style scenarios) may not load until the service recovers.
+      </p>
+
+      <h3 style="font-size:15px;margin:12px 0 6px;">AI-style scenarios (when enabled)</h3>
+      <p style="line-height:1.7;color:#e5e7eb;opacity:.92;">
+        If AI insights are enabled for a selected coin, CryptoVision formats prediction output into simple probabilistic scenarios (bullish / bearish).
+        These scenarios are informational and should be interpreted as possible ranges, not certain forecasts.
+      </p>
+
+      <div style="margin-top:12px;padding:12px;border:1px solid rgba(148,163,184,.25);border-radius:14px;background:rgba(2,6,23,.35);">
+        <strong style="display:block;margin-bottom:6px;">Disclaimer</strong>
+        <p style="line-height:1.7;color:#e5e7eb;opacity:.92;margin:0;">
+          Educational only. Not financial advice. Always do your own research and manage risk responsibly.
+        </p>
+      </div>
+    </section>
 
     <section class="grid-top">
       <div>
