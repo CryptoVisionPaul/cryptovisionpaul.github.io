@@ -529,6 +529,71 @@
       .table-wrap{max-height:360px}
       .plan-grid{grid-template-columns:minmax(0,1fr)}
     }
+
+    /* =========================
+   MOBILE OPTIMIZATION
+========================= */
+@media (max-width: 768px) {
+
+  body {
+    padding: 8px;
+  }
+
+  .shell {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 22px !important;
+  }
+
+  .title-block p {
+    font-size: 12px;
+  }
+
+  .main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  .big-price {
+    font-size: 18px;
+  }
+
+  .controls-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .controls-row select,
+  .controls-row button {
+    width: 100%;
+  }
+
+  .promo-img {
+    height: auto;
+  }
+
+}
+
   </style>
 </head>
 
